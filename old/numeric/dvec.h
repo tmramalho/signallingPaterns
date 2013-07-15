@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 
+// TRIAL COMMIT
+
 class dvec {
 	
 	public:
