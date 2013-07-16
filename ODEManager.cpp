@@ -12,15 +12,13 @@
  * -------------------------------------------------------------------------- 
  * Default implementation of constructor for use during development 
  */
-ODEManager::ODEManager() {
+ODEManager::ODEManager():iTissue(1),currTissue(1),dxdt(1) {
 	
-	/* Create iTissue vector */ // Temp: initialize to specifications
-	iTissue = new std::vector< dvec* >(1);
-	iTissue->at(0) = new dvec(3, 3.0);
-	
-	/* Initialize fTissue to all proteins at 0 concentration */
-	currTissue = new std::vector< dvec* >(1);
-	currTissue->at(0) = new dvec(iTissue->at(0));
+	/* Set initial conditions and fill iTissue and currTissue with them */
+	dvec insertOne(3,3.0);
+	iTissue.at(0).set(insertOne);
+	currTissue.at(0).set(insertOne);
+	dxdt.at(0).set(insertOne); // We need to make sure the dxdt begins with a dvec of the appropriate size.
 	
 	/* Initialize time */
 	time = 0;
@@ -29,17 +27,14 @@ ODEManager::ODEManager() {
 	/* Currently we initialize to a list of length one with the parameters as 
 	 * listed.
 	 */
-	reactions = new Reaction;
-	reactions->reactantOne = 0;
-	reactions->reactantTwo = 1;
-	reactions->product = 2;
-	reactions->forwardRate = .3;
-	reactions->backwardRate = .7;
-	reactions->link = NULL;
+	reactions = new Reaction[1];
+	reactions[1].reactantOne = 0;
+	reactions[1].reactantTwo = 1;
+	reactions[1].product = 2;
+	reactions[1].forwardRate = .3;
+	reactions[1].backwardRate = .7;
 	
-	/* Initialize dxdt vector. */
-	dxdt = new std::vector< dvec* >(1);
-	dxdt->at(0) = new dvec(3,3.0);
+	/* Set dxdt vector according to reactions */
 	updateRates();
 }
 
@@ -48,25 +43,8 @@ ODEManager::ODEManager() {
  */
 ODEManager::~ODEManager() {
 	
-	/* Delete iTissue and what it points to. */
-	for ( int i = 0; i < iTissue->size(); i++ ) {
-		delete iTissue->at(i);
-	}
-	delete iTissue;
-	
-	/* Delete fTissue and what it points to. */
-	for ( int i = 0; i < currTissue->size(); i++ ) {
-		delete currTissue->at(i);
-	}
-	delete currTissue;
-	
-	/* Delete reactions linked list */
-	Reaction *curr = reactions;
-	while ( curr != NULL ) {
-		Reaction *next = curr->link;
-		delete curr;
-		curr = next;
-	}
+	/* Delete reactions array */
+	delete[] reactions;
 	
 }
 
@@ -101,33 +79,28 @@ void ODEManager::run(string mode) {
  */
 void ODEManager::updateRates() {
 	
-	for ( int iCell = 0 ; iCell < currTissue->size() ; iCell++ ) {
+	for ( int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
 		/* Reset all rates to zero */
-		dxdt->at(iCell)->zero();
+		dxdt.at(iCell).zero();
 		
-		/* Find dvec of protein concentartions in this cell. Then iterate 
+		/* Find dvec of protein concentrations in this cell. Then iterate 
 		 * through the reactions to update rates of change of these 
 		 * concentrations
 		 */
-		dvec *currCell = currTissue->at(iCell);
-		Reaction *currReaction = reactions;
-		while ( currReaction != NULL ) {
+		for ( int iReaction = 0; iReaction < 1 ; iReaction++ ) { // for now we have only one cell
 			
 			/* forwardFlow is lambdaOne * [reactantOne] * [reactantTwo] */
-			double forwardFlow = currReaction->forwardRate * 
-			currCell->at(currReaction->reactantOne) * 
-			currCell->at(currReaction->reactantTwo);
+			double forwardFlow = reactions[iReaction].forwardRate * 
+			currTissue.at(iCell).at(reactions[iReaction].reactantOne) * 
+			currTissue.at(iCell).at(reactions[iReaction].reactantTwo);
 			/* backwardFlow is lambdaTwo * [product] */
-			double backwardFlow = currReaction->backwardRate *
-			currCell->at(currReaction->product);
+			double backwardFlow = reactions[iReaction].backwardRate *
+			currTissue.at(iCell).at(reactions[iReaction].product);
 			
 			/* Update concentrations in our dvec */
-			dxdt->at(iCell)->at(currReaction->reactantOne) += backwardFlow - forwardFlow;
-			dxdt->at(iCell)->at(currReaction->reactantTwo) += backwardFlow - forwardFlow;
-			dxdt->at(iCell)->at(currReaction->product) += forwardFlow- backwardFlow;
-			
-			/* Move to next reaction */
-			currReaction = currReaction->link;
+			dxdt.at(iCell).at(reactions[iReaction].reactantOne) += backwardFlow - forwardFlow;
+			dxdt.at(iCell).at(reactions[iReaction].reactantTwo) += backwardFlow - forwardFlow;
+			dxdt.at(iCell).at(reactions[iReaction].product) += forwardFlow- backwardFlow;
 			
 		}
 	}	
@@ -141,8 +114,8 @@ void ODEManager::updateRates() {
 void ODEManager::rk1_det_ti_step ( double dt ) {
 	
 	/* Update currTissue according to current rates */
-	for ( int iCell = 0 ; iCell < currTissue->size() ; iCell++ ) {
-		(*currTissue->at(iCell)) += (*dxdt->at(iCell))*dt; // I think I might be having a problem here.
+	for ( int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
+		currTissue.at(iCell) += (dxdt.at(iCell))*dt;
 	}
 	
 	/* Update dxdt vector to maintain accuracy of current representation*/
@@ -159,12 +132,12 @@ void ODEManager::rk1_det_ti_step ( double dt ) {
  */
 void ODEManager::rk1_det_ti ( int numSteps , double dt ) {
 	for ( int step = 0 ; step < numSteps ; step++ ) {
-		std::cout << "We made it here!" << 3 << std::endl;
+		std::cout << step << ": " << currTissue.at(0).at(0) << std::endl;
 		rk1_det_ti_step( dt );
 	}
-	std::cout << currTissue->at(1)->at(0) << " " <<
-	currTissue->at(1)->at(1) << " " <<
-	currTissue->at(1)->at(2) << " " << std::endl;
+	std::cout << currTissue.at(1).at(0) << " " <<
+	currTissue.at(1).at(1) << " " <<
+	currTissue.at(1).at(2) << " " << std::endl;
 	
 }
 

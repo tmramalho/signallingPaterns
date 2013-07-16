@@ -13,11 +13,12 @@
 # include <ctime>
 # include <cstring>
 
-# include "genlib.h"
 # include "dvec.h"
 
 # ifndef _ODEManager_H
 # define _ODEManager_H
+
+using namespace std;
 
 class ODEManager {
 	
@@ -36,20 +37,16 @@ private:
 		int product;
 		double forwardRate;
 		double backwardRate;
-		Reaction *link;
 	};
 	
-	std::vector< dvec* > *iTissue; /* Can this be static so we don't have to
-									    * reinitalize after every call to ODE?
-									    */
-	std::vector< dvec* > *currTissue;
-	std::vector< dvec* > *dxdt; /* At all times, it should have the current rates of
-							* change of concentrations of proteins. Implementation
-							* of all methods should be such to maintain this.
-							*/ 
+	std::vector< dvec > iTissue, currTissue, dxdt;
+	/* At all times, it should have the current rates of
+	 * change of concentrations of proteins. Implementation
+	 * of all methods should be such to maintain this.
+	 */ 
 	double time;
 	
-	/* Linked list of reactions */
+	/* Array of reactions */
 	Reaction *reactions;
 	
 	/* Copy and assignment operators made private */
