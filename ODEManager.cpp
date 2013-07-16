@@ -12,14 +12,17 @@
  * -------------------------------------------------------------------------- 
  * Default implementation of constructor for use during development 
  */
-ODEManager::ODEManager():iTissue(1),currTissue(1),dxdt(1) {
+ODEManager::ODEManager() {
 	
 	/* Set initial conditions and fill iTissue and currTissue with them */
 	dvec insertOne(3,3.0);
-	iTissue.at(0).set(insertOne);
-	currTissue.at(0).set(insertOne);
-	dxdt.at(0).set(insertOne); // We need to make sure the dxdt begins with a dvec of the appropriate size.
+	iTissue.push_back(insertOne);
+	dvec insertOne(3,3.0);
+	currTissue.push_back(insertOne);
+	dvec insertOne(3,3.0);
+	dxdt.push_back(insertOne); // We need to make sure the dxdt begins with a dvec of the appropriate size.
 	
+	cout << iTissue.size() << endl;
 	/* Initialize time */
 	time = 0;
 	
@@ -114,8 +117,11 @@ void ODEManager::updateRates() {
 void ODEManager::rk1_det_ti_step ( double dt ) {
 	
 	/* Update currTissue according to current rates */
-	for ( int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
-		currTissue.at(iCell) += (dxdt.at(iCell))*dt;
+	for ( unsigned int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
+		dvec& cellVec = currTissue.at(iCell);
+		for ( unsigned int i = 0; i < cellVec.size(); i++ ) {
+			cellVec.at(i) += (dxdt.at(iCell).at(i))*dt;
+		}
 	}
 	
 	/* Update dxdt vector to maintain accuracy of current representation*/
@@ -135,9 +141,10 @@ void ODEManager::rk1_det_ti ( int numSteps , double dt ) {
 		std::cout << step << ": " << currTissue.at(0).at(0) << std::endl;
 		rk1_det_ti_step( dt );
 	}
-	std::cout << currTissue.at(1).at(0) << " " <<
-	currTissue.at(1).at(1) << " " <<
-	currTissue.at(1).at(2) << " " << std::endl;
+	std::cout << currTissue.size() << std::endl;
+	std::cout << currTissue.at(0).at(0) << " " <<
+	currTissue.at(0).at(1) << " " <<
+	currTissue.at(0).at(2) << " " << std::endl;
 	
 }
 
