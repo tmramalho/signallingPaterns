@@ -1,12 +1,18 @@
 #include "dvec.h"
 
+dvec::dvec() {
+	_main = new double[1];
+	_size = 1;
+	_main[0] = 0;
+}
+
 dvec::dvec(unsigned int size) {
 	_main = new double[size];
 	_size = size;
 	for(unsigned int i = 0 ; i < size ; i++) {
 		_main[i] = 0;
 	}
-
+	
 }
 
 dvec::dvec(unsigned int size, double value) {
@@ -15,7 +21,7 @@ dvec::dvec(unsigned int size, double value) {
 	for(unsigned int i = 0 ; i < size ; i++) {
 		_main[i] = value;
 	}
-
+	
 }
 
 dvec::dvec(unsigned int size, double *nums) {
@@ -24,7 +30,7 @@ dvec::dvec(unsigned int size, double *nums) {
 	for(unsigned int i=0;i<size;i++) {
 		_main[i] = nums[i];
 	}
-
+	
 }
 
 dvec::dvec(unsigned int size, dvec *x) {
@@ -33,18 +39,18 @@ dvec::dvec(unsigned int size, dvec *x) {
 	for(unsigned int i = 0 ; i < _size ; i++) {
 		_main[i] = (*x)[i];
 	}
-
+	
 }
 
 /*dvec::dvec(dvec &newOne) {
-	_size = newOne.size();
-	_main = new double[_size];
-	//_main = new double[size];
-	for(unsigned int i=0;i<_size;i++) {
-		_main[i] = newOne[i];
-	}
-
-}*/
+ _size = newOne.size();
+ _main = new double[_size];
+ //_main = new double[size];
+ for(unsigned int i=0;i<_size;i++) {
+ _main[i] = newOne[i];
+ }
+ 
+ }*/
 
 dvec::dvec(dvec *newOne) {
 	_size = newOne->size();
@@ -53,7 +59,7 @@ dvec::dvec(dvec *newOne) {
 	for(unsigned int i=0;i<_size;i++) {
 		_main[i] = (*newOne)[i];
 	}
-
+	
 }
 
 dvec::~dvec() {
@@ -76,6 +82,19 @@ void dvec::set(double num) {
 	for(unsigned int i = 0 ; i < _size ; i++) {
 		_main[i] = num;
 	}
+}
+
+void dvec::set(const dvec &other) {
+	// Only do assignment if RHS is a different object from this.
+	if (this != &other) {
+		delete[] _main;
+		unsigned int size = other.size();
+		_main = new double[size];
+		_size = size;
+		for(unsigned int i = 0 ; i < _size ; i++) {
+			_main[i] = other.getValue(i);
+		}
+    }
 }
 
 void dvec::copy(dvec &other) {
@@ -133,7 +152,7 @@ dvec &dvec::operator+=(const dvec &other) {
 			}
 		}
 	}
-
+	
 	return *this;
 }
 
@@ -150,7 +169,7 @@ dvec &dvec::operator-=(const dvec &other) {
 			}
 		}
 	}
-
+	
 	return *this;
 }
 
@@ -158,7 +177,7 @@ dvec &dvec::operator*=(double rhs) {
 	for(unsigned int i = 0 ; i < _size ; i++) {
 		_main[i] *= rhs;
 	}
-
+	
 	return *this;
 }
 
