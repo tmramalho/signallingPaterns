@@ -13,7 +13,7 @@
 # include <ctime>
 # include <cstring>
 
-# include "dvec.h"
+# include "old/numeric/dvec.h"
 
 # ifndef _ODEManager_H
 # define _ODEManager_H
