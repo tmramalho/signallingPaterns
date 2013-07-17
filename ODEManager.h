@@ -39,7 +39,7 @@ private:
 		double backwardRate;
 	};
 	
-	std::vector< dvec > iTissue, currTissue, dxdt;
+	std::vector< dvec* > iTissue, currTissue, dxdt;
 	/* At all times, it should have the current rates of
 	 * change of concentrations of proteins. Implementation
 	 * of all methods should be such to maintain this.

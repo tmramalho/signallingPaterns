@@ -15,27 +15,28 @@
 ODEManager::ODEManager() {
 	
 	/* Set initial conditions and fill iTissue and currTissue with them */
-	dvec insertOne(3,3.0);
+	dvec* insertOne = new dvec(3,3.0);
+	dvec* insertTwo = new dvec(3,3.0);
+	dvec* insertThree = new dvec(3,3.0);
+	
 	iTissue.push_back(insertOne);
-	dvec insertOne(3,3.0);
-	currTissue.push_back(insertOne);
-	dvec insertOne(3,3.0);
-	dxdt.push_back(insertOne); // We need to make sure the dxdt begins with a dvec of the appropriate size.
+	currTissue.push_back(insertTwo);
+	dxdt.push_back(insertThree);
 	
 	cout << iTissue.size() << endl;
 	/* Initialize time */
 	time = 0;
 	
-	/* Create reaction linked list */
+	/* Create reaction array */
 	/* Currently we initialize to a list of length one with the parameters as 
 	 * listed.
 	 */
 	reactions = new Reaction[1];
-	reactions[1].reactantOne = 0;
-	reactions[1].reactantTwo = 1;
-	reactions[1].product = 2;
-	reactions[1].forwardRate = .3;
-	reactions[1].backwardRate = .7;
+	reactions[0].reactantOne = 0;
+	reactions[0].reactantTwo = 1;
+	reactions[0].product = 2;
+	reactions[0].forwardRate = .3;
+	reactions[0].backwardRate = .7;
 	
 	/* Set dxdt vector according to reactions */
 	updateRates();
@@ -45,6 +46,12 @@ ODEManager::ODEManager() {
  * -------------------------------------------------------------------------- 
  */
 ODEManager::~ODEManager() {
+	
+	for (int i = 1 ; i < iTissue.size() ; i++) {
+		delete iTissue.at(i);
+		delete currTissue.at(i);
+		delete dxdt.at(i);
+	}
 	
 	/* Delete reactions array */
 	delete[] reactions;
@@ -84,26 +91,26 @@ void ODEManager::updateRates() {
 	
 	for ( int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
 		/* Reset all rates to zero */
-		dxdt.at(iCell).zero();
+		dxdt.at(iCell)->zero();
 		
 		/* Find dvec of protein concentrations in this cell. Then iterate 
 		 * through the reactions to update rates of change of these 
 		 * concentrations
 		 */
-		for ( int iReaction = 0; iReaction < 1 ; iReaction++ ) { // for now we have only one cell
+		for ( unsigned int iReaction = 0; iReaction < 1 ; iReaction++ ) { // for now we have only one cell
 			
 			/* forwardFlow is lambdaOne * [reactantOne] * [reactantTwo] */
 			double forwardFlow = reactions[iReaction].forwardRate * 
-			currTissue.at(iCell).at(reactions[iReaction].reactantOne) * 
-			currTissue.at(iCell).at(reactions[iReaction].reactantTwo);
+			currTissue.at(iCell)->at(reactions[iReaction].reactantOne) * 
+			currTissue.at(iCell)->at(reactions[iReaction].reactantTwo);
 			/* backwardFlow is lambdaTwo * [product] */
 			double backwardFlow = reactions[iReaction].backwardRate *
-			currTissue.at(iCell).at(reactions[iReaction].product);
+			currTissue.at(iCell)->at(reactions[iReaction].product);
 			
 			/* Update concentrations in our dvec */
-			dxdt.at(iCell).at(reactions[iReaction].reactantOne) += backwardFlow - forwardFlow;
-			dxdt.at(iCell).at(reactions[iReaction].reactantTwo) += backwardFlow - forwardFlow;
-			dxdt.at(iCell).at(reactions[iReaction].product) += forwardFlow- backwardFlow;
+			dxdt.at(iCell)->at(reactions[iReaction].reactantOne) += backwardFlow - forwardFlow;
+			dxdt.at(iCell)->at(reactions[iReaction].reactantTwo) += backwardFlow - forwardFlow;
+			dxdt.at(iCell)->at(reactions[iReaction].product) += forwardFlow- backwardFlow;
 			
 		}
 	}	
@@ -118,9 +125,10 @@ void ODEManager::rk1_det_ti_step ( double dt ) {
 	
 	/* Update currTissue according to current rates */
 	for ( unsigned int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
-		dvec& cellVec = currTissue.at(iCell);
-		for ( unsigned int i = 0; i < cellVec.size(); i++ ) {
-			cellVec.at(i) += (dxdt.at(iCell).at(i))*dt;
+		dvec* cellVec = currTissue.at(iCell);
+		for ( unsigned int i = 0; i < cellVec->size(); i++ ) {
+			double update = (dxdt.at(iCell)->at(i))*dt;
+			cellVec->at(i) += update;
 		}
 	}
 	
@@ -138,14 +146,22 @@ void ODEManager::rk1_det_ti_step ( double dt ) {
  */
 void ODEManager::rk1_det_ti ( int numSteps , double dt ) {
 	for ( int step = 0 ; step < numSteps ; step++ ) {
-		std::cout << step << ": " << currTissue.at(0).at(0) << std::endl;
+		std::cout << step << ": " << currTissue.at(0)->at(0)
+		<< " " << currTissue.at(0)->at(1) << " " <<
+		currTissue.at(0)->at(2) << std::endl;
 		rk1_det_ti_step( dt );
 	}
-	std::cout << currTissue.size() << std::endl;
-	std::cout << currTissue.at(0).at(0) << " " <<
-	currTissue.at(0).at(1) << " " <<
-	currTissue.at(0).at(2) << " " << std::endl;
-	
+	std::cout << std::endl;
+	std::cout << "Final Configuration" << std::endl;
+	std::cout << "iTissue: " << iTissue.at(0)->at(0)
+	<< " " << iTissue.at(0)->at(1) << " " <<
+	iTissue.at(0)->at(2) << std::endl;
+	std::cout << "currTissue: " << currTissue.at(0)->at(0)
+	<< " " << currTissue.at(0)->at(1) << " " <<
+	currTissue.at(0)->at(2) << std::endl;
+	std::cout << "dxdt: " << dxdt.at(0)->at(0)
+	<< " " << dxdt.at(0)->at(1) << " " <<
+	dxdt.at(0)->at(2) << std::endl;
 }
 
 
