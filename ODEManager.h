@@ -14,6 +14,7 @@
 # include <cstring>
 
 # include "old/numeric/dvec.h"
+# include "ODEReaction.h"
 
 # ifndef _ODEManager_H
 # define _ODEManager_H
@@ -31,14 +32,6 @@ public:
 	
 private:
 	
-	struct Reaction {
-		int reactantOne;
-		int reactantTwo;
-		int product;
-		double forwardRate;
-		double backwardRate;
-	};
-	
 	std::vector< dvec* > iTissue, currTissue, dxdt;
 	/* At all times, it should have the current rates of
 	 * change of concentrations of proteins. Implementation
@@ -46,8 +39,8 @@ private:
 	 */ 
 	double time;
 	
-	/* Array of reactions */
-	Reaction *reactions;
+	/* Vector of ODEReactions */
+	std::vector< ODEReaction* > reactions;
 	
 	/* Copy and assignment operators made private */
 	ODEManager( ODEManager *newOne );

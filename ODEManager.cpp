@@ -23,20 +23,14 @@ ODEManager::ODEManager() {
 	currTissue.push_back(insertTwo);
 	dxdt.push_back(insertThree);
 	
-	cout << iTissue.size() << endl;
 	/* Initialize time */
 	time = 0;
 	
-	/* Create reaction array */
-	/* Currently we initialize to a list of length one with the parameters as 
-	 * listed.
+	/* 
+	 * Add the default reaction to our reaction vector. For now, this is of
+	 * type COMBINATION.
 	 */
-	reactions = new Reaction[1];
-	reactions[0].reactantOne = 0;
-	reactions[0].reactantTwo = 1;
-	reactions[0].product = 2;
-	reactions[0].forwardRate = .3;
-	reactions[0].backwardRate = .7;
+	reactions.push_back(new ODEReaction());
 	
 	/* Set dxdt vector according to reactions */
 	updateRates();
@@ -47,14 +41,15 @@ ODEManager::ODEManager() {
  */
 ODEManager::~ODEManager() {
 	
-	for (int i = 1 ; i < iTissue.size() ; i++) {
+	for ( int i = 0 ; i < iTissue.size() ; i++ ) {
 		delete iTissue.at(i);
 		delete currTissue.at(i);
 		delete dxdt.at(i);
 	}
 	
-	/* Delete reactions array */
-	delete[] reactions;
+	for ( int i = 0 ; i < reactions.size() ; i++ ) {
+		delete reactions.at(i);
+	}
 	
 }
 
@@ -89,31 +84,27 @@ void ODEManager::run(string mode) {
  */
 void ODEManager::updateRates() {
 	
+	/* Reset all rates to zero */
 	for ( int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
-		/* Reset all rates to zero */
 		dxdt.at(iCell)->zero();
+	}
+	
+	/* Update dxdt vector with new rates, which the ODEReaction objects calculates
+	 * for us.
+	 */
+	for ( unsigned int iReaction = 0 ; iReaction < reactions.size() ; iReaction++ ) {
 		
-		/* Find dvec of protein concentrations in this cell. Then iterate 
-		 * through the reactions to update rates of change of these 
-		 * concentrations
+		reactions.at(iReaction)->react(currTissue);
+		
+		/* For this reaction, we go through the participants and update our dxdt
+		 * dvecs accordingling.
 		 */
-		for ( unsigned int iReaction = 0; iReaction < 1 ; iReaction++ ) { // for now we have only one cell
-			
-			/* forwardFlow is lambdaOne * [reactantOne] * [reactantTwo] */
-			double forwardFlow = reactions[iReaction].forwardRate * 
-			currTissue.at(iCell)->at(reactions[iReaction].reactantOne) * 
-			currTissue.at(iCell)->at(reactions[iReaction].reactantTwo);
-			/* backwardFlow is lambdaTwo * [product] */
-			double backwardFlow = reactions[iReaction].backwardRate *
-			currTissue.at(iCell)->at(reactions[iReaction].product);
-			
-			/* Update concentrations in our dvec */
-			dxdt.at(iCell)->at(reactions[iReaction].reactantOne) += backwardFlow - forwardFlow;
-			dxdt.at(iCell)->at(reactions[iReaction].reactantTwo) += backwardFlow - forwardFlow;
-			dxdt.at(iCell)->at(reactions[iReaction].product) += forwardFlow- backwardFlow;
-			
+		ODEReaction *currR = reactions.at(iReaction);
+		for ( int p = 0 ; p < reactions.at(iReaction)->getNumPart() ; p++ ) {
+			dxdt.at(currR->getCellLoc(p))->at(currR->getMolLoc(p)) += currR->getDxDt(p);
 		}
-	}	
+		
+	}
 }
 
 /* Private Method: rk1_det_ti_step(dt)
