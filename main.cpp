@@ -39,7 +39,8 @@ using namespace std;
 
 int main() 
 {
-	ODEManager manager;
+	Genome genome;
+	ODEManager manager(genome);
 	manager.run("rk1_det_ti");
 	
 	return 0;

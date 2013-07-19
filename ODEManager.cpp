@@ -10,33 +10,61 @@
 
 /* Constructor: ODEManager()
  * -------------------------------------------------------------------------- 
- * Default implementation of constructor for use during development 
+ * Default implementation of constructor for use during development.
+ *
+ * We construct a one cell tissue with three substances of concentration 3.0
+ * each, with the default ODEReaction describing their interaction.
+ *
+ * The default ODEReaction is:
+ *		type: COMBINATION
+ *		moleculeZero + moleculeOne <--> moleculeTwo
+ *		forwardRate = 0.7 * [moleculeZero] * [moleculeOne]
+ *		backwardRate = 0.3 * [moleculeTwo]
+ *
  */
 ODEManager::ODEManager() {
 	
 	/* Set initial conditions and fill iTissue and currTissue with them */
+	dvec* insertZero = new dvec(3,3.0);
 	dvec* insertOne = new dvec(3,3.0);
 	dvec* insertTwo = new dvec(3,3.0);
-	dvec* insertThree = new dvec(3,3.0);
 	
-	iTissue.push_back(insertOne);
-	currTissue.push_back(insertTwo);
-	dxdt.push_back(insertThree);
+	iTissue.push_back(insertZero);
+	currTissue.push_back(insertOne);
+	dxdt.push_back(insertTwo);
 	
 	/* Initialize time */
 	time = 0;
 	
-	/* 
-	 * Add the default reaction to our reaction vector. For now, this is of
-	 * type COMBINATION.
-	 */
+	/* Add the default reaction to our reaction vector. */
 	reactions.push_back(new ODEReaction());
 	
 	/* Set dxdt vector according to reactions */
 	updateRates();
 }
 
-/* Constructor: ODEManager() 
+/* Constructor: ODEManager(genome)
+ * -------------------------------------------------------------------------- 
+ * Constructor that reads the the information contained in a genome and uses
+ * it to construct the corresponding ODE system representing it.
+ */
+ODEManager::ODEManager(Genome& genome) {
+	
+	int numMol = genome.getNumMol();
+	iTissue.push_back( new dvec(numMol,3.0) );
+	currTissue.push_back( new dvec(numMol,3.0) );
+	dxdt.push_back( new dvec(numMol,3.0) );
+	
+	time = 0.0;
+	
+	readInReactions(genome);
+	
+	updateRates();
+	
+}
+
+
+/* Destructor: ODEManager() 
  * -------------------------------------------------------------------------- 
  */
 ODEManager::~ODEManager() {
@@ -53,28 +81,15 @@ ODEManager::~ODEManager() {
 	
 }
 
-/* Copy Operator
- * -------------------------------------------------------------------------- 
- */
-ODEManager::ODEManager( ODEManager *newOne ) {
-	
-}
-
-/* Assignment Operator 
- * -------------------------------------------------------------------------- 
- */
-ODEManager& ODEManager::operator=( const ODEManager& rhs ) { return *this; }
-
 /* Public Method: run(mode)
  * -------------------------------------------------------------------------- 
- * Runs the ODE by filling in the fTissue vector based on iTissue, Reactions,
- * and mode.
- */
-/* Temp: mode is irrelevant, but will specify which numerical method we are
- * going to use. For the moment, we use rk1_det_ti.
+ * Runs the ODE by filling in the currTissue vector based on iTissue, 
+ * reactions, and mode.
  */
 void ODEManager::run(string mode) {
-	rk1_det_ti ( 100 , .1 );
+	if (mode == "rk1_det_ti"){
+		rk1_det_ti ( 100 , .1 );
+	}
 }
 
 /* Private Method: updateRates()
@@ -92,16 +107,21 @@ void ODEManager::updateRates() {
 	/* Update dxdt vector with new rates, which the ODEReaction objects calculates
 	 * for us.
 	 */
-	for ( unsigned int iReaction = 0 ; iReaction < reactions.size() ; iReaction++ ) {
+	for ( unsigned int iReac = 0 ; iReac < reactions.size() ; iReac++ ) {
 		
-		reactions.at(iReaction)->react(currTissue);
+		reactions.at(iReac)->react(currTissue);
 		
 		/* For this reaction, we go through the participants and update our dxdt
-		 * dvecs accordingling.
+		 * dvecs accordingly.
 		 */
-		ODEReaction *currR = reactions.at(iReaction);
-		for ( int p = 0 ; p < reactions.at(iReaction)->getNumPart() ; p++ ) {
-			dxdt.at(currR->getCellLoc(p))->at(currR->getMolLoc(p)) += currR->getDxDt(p);
+		ODEReaction *currReac = reactions.at(iReac);
+		
+		currReac->react(currTissue); /* This is where the actual calculation occurs.
+									  * Everything else is simply looking up.
+									  */
+		
+		for ( int p = 0 ; p < reactions.at(iReac)->getNumPart() ; p++ ) {
+			dxdt.at(currReac->getICell(p))->at(currReac->getIPart(p)) += currReac->getDxDt(p);
 		}
 		
 	}
@@ -154,6 +174,44 @@ void ODEManager::rk1_det_ti ( int numSteps , double dt ) {
 	<< " " << dxdt.at(0)->at(1) << " " <<
 	dxdt.at(0)->at(2) << std::endl;
 }
+
+/* Private Method: readInReactions(genome)
+ * -------------------------------------------------------------------------- 
+ * Helper method for translation of genome.
+ * 
+ * We iterate through the GenomeReactions in our genome, and for each one we
+ * create a corresponding ODEReaction to add to our reactions vector for use
+ * during ODEIntegration.
+ *
+ * A main difference between ODEReactions and GenomeReactions is that while
+ * our genome distinguishes between genes and proteins, our ODE does not. 
+ * To our ODE, everything is simply given a slot in our dvec. 
+ * 
+ * Thus, in order to translate from the genome to the ODE system, we need a 
+ * protocol for how we arrange our substances in our dvecs. This protocol is
+ * contained in the operation of the Genome class, which can take it's
+ * reactantions and tell us where each participant should be in the dvecs of
+ * our ODEManager. Because the genome owns this placement operation, it will
+ * be consistant everywhere in our code.
+ */
+void ODEManager::readInReactions(Genome& genome) {
+	
+	for ( int iCell = 0 ; iCell < currTissue.size() ; iCell++ ) {
+		for ( int iReac = 0 ; iReac < genome.getNumReac() ; iReac++ ) {
+			reactions.push_back(new ODEReaction(genome,iReac,iCell));
+		}
+	}	
+	
+}
+
+
+
+
+
+
+
+
+
 
 
 
