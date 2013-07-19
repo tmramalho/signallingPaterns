@@ -6,7 +6,7 @@
  *
  */
 
-/* ReactionType allows us to classify reactions easily so that
+/* ReactionType allows us to classify reactions easily.
  * 
  */
 

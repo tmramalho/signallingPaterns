@@ -35,6 +35,9 @@ Genome::Genome() {
 	proteins.at(2)->addReaction(reactions.at(0));
 }
 
+/* Destructor: ~Genome()
+ * -------------------------------------------------------------------------- 
+ */
 Genome::~Genome() {
 	for ( int i = 0 ; i < reactions.size() ; i++ ) {
 		delete reactions.at(i);
@@ -47,14 +50,27 @@ Genome::~Genome() {
 	}
 }
 
+/* Public Method: getNumMol()
+ * -------------------------------------------------------------------------- 
+ * Returns the number of molecules, including genes, proteins, and complexes,
+ * in this genome.
+ */
 int Genome::getNumMol() {
 	return genes.size() + proteins.size();
 }
 
+/* Public Method: getNumReac()
+ * -------------------------------------------------------------------------- 
+ * Returns the number of reactions in this genome.
+ */
 int Genome::getNumReac() {
 	return reactions.size();
 }
 
+/* Public Method: getReacRef(i)
+ * -------------------------------------------------------------------------- 
+ * Returns a reference to the reaction held in this genome with index i.
+ */
 GenomeReaction* Genome::getReacRef(int i) {
 	return reactions.at(i);
 }
@@ -68,10 +84,12 @@ GenomeReaction* Genome::getReacRef(int i) {
  * the order in which they appear in the genes vector, followed by all the 
  * proteins in the order in which they appear in that vector.
  *
+ * See "Note on translation to ODEManager" in the description of the Genome
+ * class in Genome.h to understand why this method is necessary.
+ *
  */
-
 int Genome::getIPartForODE( int iReac , int partNum ) {
-// Make sure that for particles that don't exist, you return NEXIST in location.	
+// Make sure that for particles that don't exist, you return index NEXIST.	
 	GenomeReaction* reacRef = reactions.at(iReac);
 	ReactionType reacType = reacRef->getReacType();
 	

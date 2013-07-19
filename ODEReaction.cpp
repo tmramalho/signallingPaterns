@@ -25,7 +25,7 @@ ODEReaction::ODEReaction() {
 	
 	numPart = 3;
 	
-	// The first cell has index zero, in which all participants are in.
+	/* The first cell has index zero, in which all participants are in. */
 	cellPartZero = 0;
 	cellPartOne = 0;
 	cellPartTwo = 0;
@@ -103,6 +103,7 @@ ODEReaction::ODEReaction ( Genome& genome , int iReac , int iCell ) {
 
 /* Destructor
  * --------------------------------------------------------------------------
+ * This class allocates nothing on the heap.
  */
 ODEReaction::~ODEReaction() {}
 
@@ -115,7 +116,14 @@ int ODEReaction::getNumPart() {
 	return numPart;
 }
 
-// We assume we never call this for a numParticipant above numParticipants
+/* Public Method: getICell(partNum)
+ * --------------------------------------------------------------------------
+ * Returns the index of the cell of the partNum participant in this reaction.
+ *
+ * CAUTION: We assume we never call this for a partNum above numPart (the 
+ * number of participants in the reaction). If we do, this will return
+ * NEXIST. If partNum is not among 1, 2, or 3, nothing returns.
+ */
 int ODEReaction::getICell(int partNum) {
 	switch (partNum) {
 		case 0:
@@ -130,6 +138,20 @@ int ODEReaction::getICell(int partNum) {
 	}
 }
 
+/* Public Method: getIPart(partNum)
+ * --------------------------------------------------------------------------
+ * Returns the index in the dvec held by ODEManager of the partNum 
+ * participant in this reaction.
+ *
+ * For example: If our cells contain four substances [A, B, C, and D] and
+ * there is a COMBINATION reaction A + D <--> B, getIPart(2) == 3 because
+ * D is the second participant in the COMBINATION REACTION and is in 
+ * location 3 of the dvec held by the cell.
+ *
+ * CAUTION: We assume we never call this for a partNum above numPart (the 
+ * number of participants in the reaction). If we do, this will return
+ * NEXIST. If partNum is not among 1, 2, or 3, nothing returns.
+ */
 int ODEReaction::getIPart(int partNum) {
 	switch (partNum) {
 		case 0:
@@ -144,8 +166,16 @@ int ODEReaction::getIPart(int partNum) {
 	}
 }
 
-// If this is called before we call the react method, it may not return the 
-// appropriate current change rate.
+/* Public Method: getDxDt(partNum)
+ * --------------------------------------------------------------------------
+ * Returns the current value of dxdt for the concentration of the partNum 
+ * participant in the reaction.
+ *
+ * CAUTION: No calculation is performed, so if the state of our cells has
+ * changed since the last time we asked ODEReaction to react, this will not
+ * return the current value of dxdt. It is best to always call react before
+ * calling this method.
+ */
 double ODEReaction::getDxDt(int partNum) {
 	switch (partNum) {
 		case 0:
@@ -163,8 +193,12 @@ double ODEReaction::getDxDt(int partNum) {
 
 /* Public Method: react(currTissue)
  * --------------------------------------------------------------------------
+ * Updates the dxdt values held by the ODEReaction based on the 
+ * concentrations in the currTissue it receives. Nothing is changed in the
+ * currTissue vector, nor in the dxdt vector of the ODEManager which contains
+ * contains it.
  */
-void ODEReaction::react( std::vector< dvec* >& currTissue ) {
+void ODEReaction::react( const std::vector< dvec* >& currTissue ) {
 	
 	// Might there be a faster implementation of this using inheritance.
 	// For now let's do this to keep it simpler.

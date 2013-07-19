@@ -33,7 +33,7 @@ public:
 	~Molecule();
 	
 	unsigned int getI();
-	void addReaction(GenomeReaction* const reactionRef);
+	void addReaction(GenomeReaction* const reacRef);
 	
 protected:
 	

@@ -28,6 +28,12 @@ public:
 	~Protein();
 	
 private:
+	
+	/* All indices refer to their index in the genome containing them. */
+	
+	/* If the protein is a complex, what are the indices of the proteins that
+	 * make it up. (Note these can be complexes themselves, or be the same.)
+	 */
 	int iRootZero;
 	int iRootOne;
 };

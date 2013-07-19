@@ -8,21 +8,37 @@
 
 #include "Molecule.h"
 
+/* Constructor: Molecule()
+ * -------------------------------------------------------------------------- 
+ */
 Molecule::Molecule() {}
 
+/* Destructor: ~Molecule()
+ * -------------------------------------------------------------------------- 
+ */
 Molecule::~Molecule() {}
 
-/* Public Method: getLocation()
+/* Public Method: getI()
  * -------------------------------------------------------------------------- 
- * Returns the location of this molecule in either the genes or proteins 
- * genome of this molecule.
+ * Returns the index of this molecule in the genome that contains it. Because
+ * the genome contains separate vectors for genes and proteins, the index i
+ * refers only to its index in the vector that contains it. To know in which
+ * vector to look, we also need its type.
  */
-
 unsigned int Molecule::getI() {
 	return i;
 }
 
-void Molecule::addReaction(GenomeReaction* const reactionRef){
+/* Public Method: addReaction(reacRef)
+ * -------------------------------------------------------------------------- 
+ * Adds to the list the molecule keeps of the reactions it participates in a
+ * reaction. 
+ *
+ * CAUTION: The molecule does not own the reaction to which it points. Rather,
+ * the genome does. The molecule, even in its destructor, should never delete
+ * these reactions.
+ */
+void Molecule::addReaction(GenomeReaction* const reacRef){
 	reactions.push_back(reactionRef);
 }
 

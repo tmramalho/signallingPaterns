@@ -30,8 +30,18 @@ public:
 	~Gene();
 	
 private:
+	
+	/* All indices refer to their index in the genome containing them. */
+	
+	/* Which protein does the gene code for */
 	int iProduct;
+	
+	/* If the gene has a promoter bound to it, which is it */
 	int iBoundPromoter;
+	
+	/* If the gene has a promoter bound to it, which is the base, promoter free
+	 * gene.
+	 */
 	int iRoot;
 };
 

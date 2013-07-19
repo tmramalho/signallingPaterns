@@ -62,16 +62,18 @@ public:
 	/* Ordering functionality */
 	/* Tells the index in the ODEManager the the partNum participant in the reacNum
 	 * reaction should be in.
+	 * See "Note on translation to ODEManager" above.
 	 */
 	int getIPartForODE( int iReac , int partNum );
 	
 private:
-
+	
 	static const int NEXIST = -1;
 	
-	/* Vector of reactions pointers */
+	/* Vector of GenomeReaction pointers */
 	std::vector< GenomeReaction* > reactions;
 
+	/* Vectors of Molecule pointers by type */
 	std::vector<Gene*> genes;
 	std::vector<Protein*> proteins;
 

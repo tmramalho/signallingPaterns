@@ -37,7 +37,7 @@ int GenomeReaction::getNumPart() {
 	return numPart;
 }
 
-/* Public Method: getMolLoc(numParticipant)
+/* Public Method: getMolLoc(partNum)
  * -------------------------------------------------------------------------- 
  * Returns the location in the vector of molecules in the genome (either the
  * vector of proteins or of genes) of the participant in the reaction indexed 
@@ -65,7 +65,7 @@ ReactionType GenomeReaction::getReacType() {
 	return type;
 }
 
-/* Public Method: getMolType()
+/* Public Method: getMolType(partNum)
  * -------------------------------------------------------------------------- 
  * Returns a MoleculeType describing whether this participant is a gene or
  * a protein.
@@ -83,6 +83,11 @@ MoleculeType GenomeReaction::getMolType(int partNum) {
 			break;
 	}
 }
+
+/* Public Method: returnKinetic(num)
+ * -------------------------------------------------------------------------- 
+ * Returns the value of the num kinetic constant for this reaction.
+ */
 
 double GenomeReaction::getKinetic(int num) {
 	switch (num) {

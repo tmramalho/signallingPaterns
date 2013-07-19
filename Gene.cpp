@@ -14,4 +14,8 @@ Gene::Gene( int iProduct , int iBoundPromoter , int iRoot ) {
 	this->iRoot = iRoot;
 }
 
+/* Destructor: ~Gene()
+ * -------------------------------------------------------------------------- 
+ * No heap allocated memory owned by the gene class.
+ */
 Gene::~Gene() {}

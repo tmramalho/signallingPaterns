@@ -61,29 +61,35 @@ public:
 	int getIPart(int partNum);
 	double getDxDt(int partNum);
 	
-	void react(std::vector< dvec* >& currTissue);
+	void react( const std::vector< dvec* >& currTissue);
 	
 private:
 	
+	/* For reactions with less than three participants, all indexes and 
+	 * locations for out-of-scope participants will be set to NEXIST.
+	 */
 	static const int NEXIST = -1;
 	
-	// ODEReaction will react differently depending on the reaction type.
+	/* ODEReaction will calculate rates differently depending on its type */
 	ReactionType type;
 	
-	// There are between one and three participants in a reaction.
+	/* Number of Participants: must be betwee 1 and 3 */
 	int numPart;
 	
-	/* For the following, we will assign NEXIST to the cell or location of 
-	 * any non-existant participant. Ie, for reactions with 2 participants,
-	 * cellPartTwo and iPartTwo = NEXIST.
+	/* Which cell in the tissue is this participant in. */
+	/* By allowing different cells for different participants, we enable
+	 * trans-membrane reactions.
+	 * The value can also be NEXIST.
 	 */
-	
-	/* Which cell in the tissue is the reaction operating in. */
 	int cellPartZero;
 	int cellPartOne;
 	int cellPartTwo;
 	
 	/* Where in the ODEManager are the participants located */
+	/* The ODEManager holds concentrations in a dvec. This tells us the
+	 * location of each participant. With the cellPart____ variables
+	 * we know the exact location of each participant
+	 */
 	int iPartZero;
 	int iPartOne;
 	int iPartTwo;

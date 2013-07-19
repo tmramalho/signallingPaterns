@@ -6,6 +6,8 @@
  *
  */
 
+/* MoleculeType allows us to classify molecules easily. */
+
 #ifndef MOLECULETYPE_H
 #define MOLECULETYPE_H
 

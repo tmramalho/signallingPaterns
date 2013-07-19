@@ -8,6 +8,9 @@
 
 #include "Protein.h"
 
+/* Constructor: Protein()
+ * -------------------------------------------------------------------------- 
+ */
 Protein::Protein( int iSelf , int iRootZero , int iRootOne ) {
 	this->iRootZero = iRootZero;
 	this->iRootOne = iRootOne;
@@ -17,4 +20,8 @@ Protein::Protein( int iSelf , int iRootZero , int iRootOne ) {
 	/* reactions will automatically initiate to empty vector */
 }
 
+/* Destructor: ~Protein()
+ * -------------------------------------------------------------------------- 
+ * No heap allocated memory owned by the protein class.
+ */
 Protein::~Protein() {}
