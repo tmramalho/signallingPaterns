@@ -1,0 +1,93 @@
+Simulating Genetics Documentation
+
+
+
+OVERVIEW
+------------------------------------------------------------------------
+This implementation relies on two primary classes: the ODEManager and
+the Genome class. The other classes serve these two. Therefore, an 
+overview of these classes demonstrates the general structure of the
+program, the rest which can be gathered by reading in-line comments.
+
+The ODEManager:
+Each object contains only that information that is necessary for 
+efficient integration of the ODE for a particular gene network. 
+Therefore, it contains for each cell a dvec of concentrations for all 
+the molecules in the gene network, whether those be genes, proteins, 
+gene-protein complexes, or protein complexes. It has no knowledge of 
+which locations in the dvec correspond to which types of substances, and
+especially not information like which proteins combine to form which 
+complexes. 
+
+It has access to objects of the ODEReaction class that describe the 
+interactions between different molecules, which here are simply 
+different locations in the dvec. The ODEReaction handles the computation
+of instantaneous rates of change of each concentration. The ODEManager 
+simply reads these rates from the ODEReaction objects. By assigned the 
+ODEManager a variable describing its type, we allow it to perform 
+different calculations based on this variable. Thus, by modularizing the
+calculation in the ODEReaction class, we can add whatever types of 
+reactions we want without changing the implementation of the ODEManager.
+We can implement anything from Hill's functions to the simple reactions 
+of Hakim from which they can be derived.
+
+The Genome:
+The Genome mirrors the ODEManager but contains more information about 
+the structure of the gene network, which is useful to us in figuring out
+or describing what the gene network looks like, and is useful for 
+managing mutations. For example, Hakim's mutation which adding a 
+reaction of type vii) requires that we are able to identify that a given
+substance is a complex.
+
+A genome object contains a list of genes and a list of proteins. Here, 
+these are objects of the class proteins and genes, so that they can 
+return to us more detailed information about themselves. Genes can be 
+both lone genes and genes bound to a promoter. The gene object will know
+whether the gene is lone, and if it is bound to a promoter, which base 
+gene and promoter it is a complex of. Proteins can be both lone proteins
+or protein complexes, and each protein object contains the information 
+relevant to this as well.
+
+
+
+CONVENTIONS
+------------------------------------------------------------------------
+Variable Names
+
+	- part: general name for either a reactant or product in a
+	reaction. Short for "participant".
+
+	- mol: to refer to a substance without consideration of which 
+	reaction it participates in, or to its specific type, like GENE,
+	PROTEIN, etc. E.g. sed in the ODEManager class.
+
+	- prot: to refer to a protein.
+
+	- gene: to refer to a gene.
+
+	- root: to refer to something from which something else is 
+	derived. For example, in a protein complex, the complex would 
+	refer to the proteins that make it up using 'root'.
+	
+	- react: to refer to a reaction.
+
+	- num: when it precedes, it means number of. When it follows, it
+	means which one. Thus, numPart is the number of participants in
+	a reaction. For A + B <--> C, numPart is 3. partNum refers to
+	where a particle is in the reaction, with a convention 
+	determining how we label participants for each type of reaction.
+	For the above reaction is of type COMBINATION, so partNum for A
+	is 0.
+
+	- i: Refers to where a variable sits in the vector which stores
+	it. For example, we may have the substances in a cell stored in 
+	a vector that looks like this: [A,B,C,D]. We might have a 
+	reaction in the cell that looks like A+C <--> D. iPart for C is
+	2 while for this given reaction, partNum for C is 1.
+	***Note iTissue refers to initial tissue, not the index***
+
+Reaction Types
+
+	- COMBINATION: A + B <--> C
+	partNum increases from left to right. Thus, for A it is 0, B it 
+	is 1, C it is 2.
