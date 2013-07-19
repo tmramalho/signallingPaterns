@@ -39,7 +39,7 @@ unsigned int Molecule::getI() {
  * these reactions.
  */
 void Molecule::addReaction(GenomeReaction* const reacRef){
-	reactions.push_back(reactionRef);
+	reactions.push_back(reacRef);
 }
 
 
