@@ -86,8 +86,8 @@ Variable Names
 	2 while for this given reaction, partNum for C is 1.
 	***Note iTissue refers to initial tissue, not the index***
 
-Reaction Types
-
+REACTION TYPES
+------------------------------------------------------------------------
 	- COMBINATION: A + B <--> C
 	partNum increases from left to right. Thus, for A it is 0, B it 
 	is 1, C it is 2.
