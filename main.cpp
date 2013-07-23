@@ -9,7 +9,7 @@
 #include <cstring>
 #include <vector>
 
-#include "ODEManager.h"
+#include "Manager.h"
 
 using namespace std;
 
@@ -39,9 +39,9 @@ using namespace std;
 
 int main() 
 {
-	Genome genome;
-	ODEManager manager(genome);
-	manager.run("rk1_det_ti");
+	Manager manager;
+	
+	manager.integrate(1000);
 	
 	return 0;
 }

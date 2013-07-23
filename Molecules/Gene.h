@@ -26,7 +26,7 @@
 class Gene : public Molecule {
 
 public:
-	Gene( int iProduct , int iBoundPromoter , int iRoot );
+	Gene( int iSelf, int iProduct , int iBoundPromoter , int iRoot );
 	~Gene();
 	
 private:
@@ -43,6 +43,7 @@ private:
 	 * gene.
 	 */
 	int iRoot;
+	
 };
 
 #endif

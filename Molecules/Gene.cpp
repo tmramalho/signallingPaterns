@@ -8,10 +8,11 @@
 
 #include "Gene.h"
 
-Gene::Gene( int iProduct , int iBoundPromoter , int iRoot ) {
+Gene::Gene( int iSelf, int iProduct , int iBoundPromoter , int iRoot ) {
 	this->iProduct = iProduct;
 	this->iBoundPromoter = iBoundPromoter;
 	this->iRoot = iRoot;
+	i = iSelf;
 }
 
 /* Destructor: ~Gene()

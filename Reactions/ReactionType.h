@@ -13,6 +13,10 @@
 #ifndef REACTIONTYPE_H
 #define REACTIONTYPE_H
 
-enum ReactionType { PROMOTION , DEGRADATION , COMBINATION };
+enum ReactionType { PROMOTION ,
+					DEGRADATION , 
+					COMBINATION , 
+					LATERAL_PROMOTION , 
+					PROMOTER_BINDING };
 
 #endif

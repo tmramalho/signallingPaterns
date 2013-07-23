@@ -21,8 +21,7 @@
 #define MOLECULE_H
 
 # include <vector>
-
-# include "GenomeReaction.h"
+# include "../Reactions/Reaction.h"
 
 using namespace std;
 
@@ -33,7 +32,7 @@ public:
 	~Molecule();
 	
 	unsigned int getI();
-	void addReaction(GenomeReaction* const reacRef);
+	void addReaction(Reaction* const reacRef);
 	
 protected:
 	
@@ -49,7 +48,7 @@ protected:
 	 * The molecule destructor should NOT delete the GenomeReactions.
 	 *
 	 */
-	vector<GenomeReaction*> reactions;
+	vector<Reaction*> reactions;
 	
 };
 

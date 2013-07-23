@@ -38,7 +38,7 @@ unsigned int Molecule::getI() {
  * the genome does. The molecule, even in its destructor, should never delete
  * these reactions.
  */
-void Molecule::addReaction(GenomeReaction* const reacRef){
+void Molecule::addReaction(Reaction* const reacRef){
 	reactions.push_back(reacRef);
 }
 
