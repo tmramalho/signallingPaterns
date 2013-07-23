@@ -200,9 +200,6 @@ void Manager::updateDx() {
 			}
 		}
 	}
-	int k;
-	k = 0;
-	
 }
 
 /* Public Method: updateDx()
