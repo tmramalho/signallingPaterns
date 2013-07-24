@@ -96,6 +96,25 @@ void CombReaction::react( std::vector< dvec* >& currTissue , std::vector< std::v
 	
 }
 
+/* Public Method: updateIndices(firstIndex,numInsertions)
+ * -------------------------------------------------------------------------- 
+ * Updates the index of iReacZero, iReacOne, iProduct, given an insertion
+ * of size numInsertions, beginning at firstIndex, into our dvecs containing
+ * molecule concentrations in our manager.
+ *
+ * See description for updateIndices private method of the manager class in
+ * the Manager.cpp file for more precise description of insertion process.
+ *
+ * Note: Because NEXIST = -1, it will never be updated by insertion procedure,
+ * as desired.
+ *
+ * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
+ */
 
+void CombReaction::updateIndices( int firstIndex , int numInsertions ) {
+	if (iReacZero >= firstIndex) iReacZero += numInsertions;
+	if (iReacOne >= firstIndex) iReacOne += numInsertions;
+	if (iProduct >= firstIndex) iProduct += numInsertions;
+}
 
 

@@ -59,11 +59,30 @@ public:
 	void setDt( double dt );
 	double getDt();
 	
+	/* Adding Reactions */
+	void addGene( double prodRate , double degRate );
+	void addPromBindingReac( int iGeneInGenes , int iProtInProts ,
+							double forwardKinetic , double backwardKinetic , 
+							double newProdRate );
+	//void addPhosphReac();
+	//void addPartialDegReac();
+	void addCombReaction( int iProtZeroInProts , int iProtOneInProts , 
+						 double forwardKinetic , double backwardKinetic );
+	//void addPartialCatDegReac();
+	void addLatPromReac( int iLocProtInProts , int iNeighborProtInProts ,
+						double kinetic , double K );
+	
+	/* Functions for running the ODE */
+	void initialize();
 	void integrate( int numSteps );
 	
+	/* Display Function */
 	void printState();
+	//void printGenome();
 	
 private:
+	
+	static const int NEXIST = -1;
 	
 	/* Neighbors info */
 	/* Our tissue data is held in a vector, with each element a separate
@@ -108,6 +127,9 @@ private:
 	double dt; 
 	double time;
 	
+	/* Number of molecules */
+	int numMol;
+	
 	/* Vector of Reactions */
 	std::vector< Reaction* > reactions;
 	
@@ -120,6 +142,10 @@ private:
 	
 	/* Helpers for running of ODEs */
 	void updateDx();
+	
+	/* Helpers for mutating genome */
+	void resizeDVecs();
+	void updateIndices( int firstIndex , int numInsertions );
 	
 };
 

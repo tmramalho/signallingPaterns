@@ -25,8 +25,17 @@ Molecule::~Molecule() {}
  * refers only to its index in the vector that contains it. To know in which
  * vector to look, we also need its type.
  */
-unsigned int Molecule::getI() {
-	return i;
+unsigned int Molecule::getISelf() {
+	return iSelf;
+}
+
+/* Public Method: getInitConc()
+ * -------------------------------------------------------------------------- 
+ * Returns the initial concentration of the gene in the simulation.
+ */
+
+double Molecule::getInitConc() {
+	return initConc;
 }
 
 /* Public Method: addReaction(reacRef)

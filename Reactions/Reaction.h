@@ -26,7 +26,7 @@
 # include <cstring>
 # include <vector>
 
-# include "../old/numerics/dvec.h"
+# include "../old/numeric/dvec.h"
 # include "ReactionType.h"
 # include "../IntegrationType.h"
 
@@ -45,6 +45,8 @@ public:
 	
 	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
 					   int iCurrCell , IntegrationType mode , double dt ) = 0;
+	
+	virtual void updateIndices( int firstIndex , int numInsertions) = 0;
 	
 protected:
 	

@@ -33,11 +33,13 @@ public:
 	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
 					   int iCurrCell , IntegrationType mode , double dt );
 	
+	virtual void updateIndices( int firstIndex , int numInsertions );
+	
 private:
 	
 	/* Where in the ODEManager are the participants located */
 	int iReac;
-	
+	/* Mutation Helper Functions */
 	/* What is the current rate of change of concentrations for the participants
 	 * in this reaction */
 	double dxReac;

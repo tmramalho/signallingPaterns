@@ -26,10 +26,16 @@
 class Gene : public Molecule {
 
 public:
-	Gene( int iSelf, int iProduct , int iBoundPromoter , int iRoot );
+	Gene( int iSelf, int iProduct , int iBoundPromoter , int iRoot , double initConc );
 	~Gene();
 	
-private:
+	int getIProduct();
+	int getIBoundPromoter();
+	int getIRoot();
+	
+	virtual void updateIndices( int firstIndex , int numInsertions );
+	
+protected:
 	
 	/* All indices refer to their index in the genome containing them. */
 	

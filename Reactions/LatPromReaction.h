@@ -18,7 +18,7 @@
  *		(d/dt)[proteinZero]=
  *				kinetic*([proteinOne]^2)/(K+[proteinOne]^2)
  *
- * Where [proteinZero} is the concentration in the current
+ * Where [proteinZero] is the concentration in the current
  * cell and [proteinOne] is the average concentration in its
  * neighbors.
  *
@@ -38,6 +38,8 @@ public:
 	
 	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
 					   int iCurrCell , IntegrationType mode , double dt );
+	
+	virtual void updateIndices( int firstIndex , int numInsertions );
 	
 private:
 	

@@ -16,7 +16,11 @@
  */
 
 Manager::Manager() {
-
+	
+	numMol = 0; /* Before we add anything to the genome. Otherwise has random
+				 * initiation.
+				 */
+	
 	/* Create neighbors vector: Linear tissue three long */
 	/* < [2] , [1,3] , [2] > */
 	neighbors.push_back(new vector<int>(1,1));
@@ -41,6 +45,7 @@ Manager::Manager() {
 	 *		Cell 3: [ 1.0  1.0  0.0  0.0  0.0  1.0 ]
 	 *
 	 */
+	/*
 	double nums[5];
 	nums[0] = 1;
 	nums[1] = 1;
@@ -55,59 +60,47 @@ Manager::Manager() {
 	nums[4] = 0.0;
 	nums[5] = 1.0;
 	iTissue.push_back(new dvec(6,nums));
+	 */
 	
 	for ( int i = 0 ; i < 3 ; i++ ) {
-		currTissue.push_back(new dvec(6,iTissue.at(i)));
-		dx.push_back(new dvec(6,0.0));
+		iTissue.push_back(new dvec());
+		currTissue.push_back(new dvec());
+		dx.push_back(new dvec());
 	}
+	
 	
 	/* Initialize gene and protein vectors */
 	/* Reference detailed constructors and array of
 	 * elements of genome above to understand 
 	 * paramaters.
 	 */
+	addGene(1.0,1.0); // Delta
+	/* < d D > */
+	addGene(0.0,2.0); // Notch
+	/* < d n D N > */
+	addPromBindingReac(0 , 1 , 1.0 , 0.1 , 1.0); // d + N --> d:N
+	/* < d n d:N D N > */
+	addPromBindingReac(2 , 1 , 1.0 , 0.1 , 0.0); // d:N + N --> d:N:N
+	/* < d n d:N d:N:N D N > */
+	addLatPromReac(1 , 0 , 1.0 , .25 ); // N promoted by neighboring D
+	
+	/*
 	genes.push_back(new Gene(0,4,-1,-1));
 	genes.push_back(new Gene(1,5,-1,-1));
 	genes.push_back(new Gene(2,4,5,0));
 	genes.push_back(new Gene(3,4,5,2));
-	
 	proteins.push_back(new Protein(4,-1,-1));
 	proteins.push_back(new Protein(5,-1,-1));
+	*/
 	
 	/* Initialize time variables */
 	dt = .01;
-	time = 0.0;
 	
 	/* Initialize Integration Mode */
 	mode = RK1_DET_TI;
 	
-	/* Initialize Reactions */
-	/* d --> D with kinetic constant 1.0 */
-	reactions.push_back(new PromReaction(0,4,0.0,1.0));
-	/* d:N --> D with kinetic constant 1.0 */
-	reactions.push_back(new PromReaction(2,4,0.0,1.0));
-	/* d:N:N --> D with kinetic constant 0 */
-	reactions.push_back(new PromReaction(3,4,0.0,0));
-	/* n --> N with kinetic constant 0 */
-	reactions.push_back(new PromReaction(1,5,0.0,0.0));
-	/* d + N <--> d:N with forwardKinetic 1, backwardKinetic 1 */
-	reactions.push_back(new PromBindingReaction(0,2,4,
-												0.0,0.0,
-												1.0,1.0));
-	/* d:N + N <--> with forwardKinetic 1, backwardKinetic 1 */
-	reactions.push_back(new PromBindingReaction(2,3,4,
-												0.0,0.0,
-												1.0,1.0));
-	/* D promotes N, with kinetic = 2.0, K = .35 */
-	reactions.push_back(new LatPromReaction(5,4,
-											0.0,2.0,
-											.35));
-	/* D --> nothing with kinetic constant 1.0 */
-	reactions.push_back(new DegReaction(4,0.0,1.0));
-	/* N --> nothing with kinetic constant 2.0 */
-	reactions.push_back(new DegReaction(5,0.0,2.0));
-	
-	updateDx();
+	/* Initialize */
+	initialize();
 	
 }
 
@@ -136,6 +129,282 @@ Manager::~Manager() {
 	
 	neighbors.erase(neighbors.begin(),neighbors.begin()+2);
 	
+}
+
+/* Public Method: setMode(mode)
+ * -------------------------------------------------------------------------- 
+ * Sets integration mode of Manager.
+ */
+void Manager::setMode( IntegrationType mode ) {
+	this->mode = mode;
+}
+
+/* Public Method: getMode()
+ * -------------------------------------------------------------------------- 
+ * Returns current integration mode of Manager.
+ */
+IntegrationType Manager::getMode() {
+	return mode;
+}
+
+/* Public Method: setDt(dt)
+ * -------------------------------------------------------------------------- 
+ * Sets time step size to be used in integration.
+ */
+void Manager::setDt( double dt ) {
+	this->dt = dt;
+}
+
+/* Public Method: getDt()
+ * -------------------------------------------------------------------------- 
+ * Returns current time step size used in integration.
+ */
+double Manager::getDt() {
+	return dt;
+}
+
+/* Public Method: addGene(prodRate)
+ * -------------------------------------------------------------------------- 
+ * Adds a new gene to the genome, as well as the corresonding protein, and
+ * sets the promotion rate to prodRate.
+ *
+ * All existing substances and reactions remain unchanged.
+ *
+ * The tasks that need to be performed are:
+ *
+ *		1. All internal data of current genes, proteins, and reactions, is 
+ *		updated to accomodate the insertion of a new gene at the end of our
+ *		list of genes, and a new protein at the end of our list of proteins.
+ *		2. A new gene is added to the gene vector, with appropriate data.
+ *		3. A new protein is added to the protein vector, with appropriate 
+ *		data. 
+ *		4. A new reaction is added describing the promotion of the protein
+ *		by the gene, with appropriate data.
+ *		5. A new reaction is added describing the degredation of the protein.
+ *		6. The promotion reaction is added to the reaction vectors of the
+ *		gene and protein.
+ *		7. The degredation reaction is added to the reaction vector of the
+ *		protein.
+ *		8. Updates numMol.
+ */
+void Manager::addGene( double prodRate , double degRate ) {
+	
+	
+	int iNewGene = genes.size();
+	int iNewProt = numMol+1; /* We are using the old, not yet updated, value 
+							  * of numMol 
+							  */
+	int iNewGeneInGenes = iNewGene;
+	int iNewProtInProts = iNewProt - (genes.size() + 1); // -1 b/c we haven't yet added the new gene to genes
+	
+	/* Step 1 */
+	updateIndices(iNewGene,1);
+	
+	/* Steps 2 - 5 */
+	genes.push_back(new Gene(iNewGene,iNewProt,NEXIST,NEXIST,1.0));
+	proteins.push_back(new Protein(iNewProt,NEXIST,NEXIST,0.0));
+	reactions.push_back(new PromReaction(iNewGene,iNewProt,0.0,prodRate));
+	reactions.push_back(new DegReaction(iNewProt,0.0,degRate));
+	
+	/* Step 6 */
+	Reaction* currReac = reactions.at(reactions.size()-2); // add new PromReaction
+	genes.at(iNewGeneInGenes)->addReaction(currReac); // to new gene
+	proteins.at(iNewProtInProts)->addReaction(currReac); // to new product protein
+	
+	/* Step 7 */
+	currReac = reactions.at(reactions.size()-1); // add new DegReaction
+	proteins.at(iNewProtInProts)->addReaction(currReac); // to now product protein
+	
+	/* Step 8 */
+	numMol += 2;
+	
+}
+
+/* Public Method: addPromBindingReaction(iGeneInGenes,iProtInProts,
+ *										 forwardKinetic,backwardKinetic,
+ *										 newProdRate)
+ * -------------------------------------------------------------------------- 
+ * Makes the protein in position iProt in proteins vector promote the gene 
+ * in position iGene in the genes vector. A new gene:prot complex is formed, 
+ * which promotes the protein gene produces at newProdRate.
+ *
+ * CAUTION: It is assumed that iGeneInGenes is the index of a gene and 
+ * iProtInProts is the index of a protein. No check is performed by the 
+ * function to guarantee this.
+ *
+ * The tasks that need to be performed are:
+ *
+ *		1. All internal data of current genes, proteins, and reactions, is 
+ *		updated to accomodate the insertion of a new gene at the end of our
+ *		list of genes. (The gene:prot complex)
+ *		2. A new gene is added to the gene vector, with appropriate data.
+ *		2. A new reaction is added describing the binding and unbinding of
+ *		gene and protein. (PromBindingReaction)
+ *		3. A reaction is added describing the production of proteins by the
+ *		gene:prot complex. (PromReaction)
+ *		5. The PromBindingReaction is added to the internal data of the gene,
+ *		binding protein, and gene-protein complex.
+ *		6. The PromReaction is added to the interal data of the gene-protein
+ *		complex and the promoted gene.
+ *		7. Updates numMol.
+ */
+void Manager::addPromBindingReac( int iGeneInGenes , int iProtInProts ,
+								 double forwardKinetic , double backwardKinetic , 
+								 double newProdRate ) {
+	
+	int iPromotedGene = genes.size();
+	
+	/* Step 1 */
+	updateIndices(iPromotedGene,1);
+	
+	/* We find these indices after step 1 to assure they are consistent with
+	 * the new indexing.
+	 */
+	int iBoundProtein = proteins.at(iProtInProts)->getISelf();
+	int iRootGene = genes.at(iGeneInGenes)->getISelf();
+	int iProductProtein = genes.at(iGeneInGenes)->getIProduct();
+	
+	/* Steps 2 */
+	genes.push_back(new Gene(iPromotedGene,iProductProtein,iBoundProtein,
+							 iRootGene,0.0));
+	
+	/* Steps 3 - 4 */
+	reactions.push_back(new PromBindingReaction(iRootGene,iPromotedGene,iBoundProtein,
+												0.0,0.0,forwardKinetic,backwardKinetic));
+	reactions.push_back(new PromReaction(iPromotedGene,iProductProtein,0.0,newProdRate));
+	
+	/* Step 5 */
+	Reaction* currReac = reactions.at(reactions.size()-2); // add new PromBindingReaction
+	genes.at(iGeneInGenes)->addReaction(currReac); // to root gene
+	proteins.at(iProtInProts)->addReaction(currReac); // to bound protein
+	genes.at(genes.size()-1)->addReaction(currReac); // to new gene:prot complex
+	
+	/* Step 6 */
+	int iProductProtInProts = iProductProtein - genes.size();
+	currReac = reactions.at(reactions.size()-1); // add new PromReaction
+	proteins.at(iProductProtInProts)->addReaction(currReac); // to product protein
+	genes.at(genes.size()-1)->addReaction(currReac); // to new gene:prot complex
+	
+	/* Step 7 */
+	numMol += 1;
+	
+}
+
+/* Public Method: addCombReaction(iProtZeroInProts,iProtOneInProts,
+ *								  forwardKinetic,backwardKinetic)
+ * -------------------------------------------------------------------------- 
+ * Makes the proteins in positions iProtZeroInProts and iProtOneInProts
+ * (which can be the same) combine to form a new protein complex. With the
+ * forward and backward rates as given.
+ *
+ * CAUTION: It is assumed that iProtZeroInProts and iProtOneInProts are the 
+ * indices of proteins No check is performed by the function to guarantee 
+ * this.
+ *
+ * The tasks that need to be performed are:
+ *
+ *		1. All internal data of current genes, proteins, and reactions, is 
+ *		updated to accomodate the insertion of a new protein at the end of 
+ *		our list of genes. (The prot:prot complex)
+ *		2. A new protein is added to the protein vector with the appropriate
+ *		data.
+ *		3. A new reaction is added describing the binding and unbinding of
+ *		the proteins. (CombReaction)
+ *		4. The CombReaction is added to the internal list of reactions of the 
+ *		individual proteins and the new prot:prot complex.
+ *		5. Updates numMol.
+ */
+
+void Manager::addCombReaction( int iProtZeroInProts , int iProtOneInProts , 
+							  double forwardKinetic , double backwardKinetic ) {
+	
+	int iProduct = numMol; // The yet to be updated value of numMol
+	
+	/* Step 1 */
+	/* No updates are necessary because the protein is added to the end of our
+	 * dvces.
+	 */
+	
+	/* Step 2 */
+	int iReacZero = iProtZeroInProts + genes.size();
+	int iReacOne = iProtZeroInProts + genes.size();
+	proteins.push_back(new Protein(iProduct,iReacZero,iReacOne,0.0));
+	
+	/* Step 3 */
+	reactions.push_back(new CombReaction(iReacZero,iReacOne,iProduct,
+										 0.0,0.0,0.0,
+										 forwardKinetic,backwardKinetic));
+	
+	/* Step 4 */
+	Reaction* currReac = reactions.at(reactions.size()-1); // add new CombReaction
+	proteins.at(iProtZeroInProts)->addReaction(currReac); // to first participant
+	if (iProtZeroInProts != iProtOneInProts) {
+		proteins.at(iProtOneInProts)->addReaction(currReac); // to second participant
+	}
+	proteins.at(proteins.size()-1)->addReaction(currReac); // to their product.
+	
+	/* Step 5 */
+	numMol += 1;
+}
+
+/* Public Method: addLatPromReac(iLocProtInProts,iNeighborProtInProts,
+ *								 double kinetic,double K)
+ * -------------------------------------------------------------------------- 
+ * Makes the protein in position iLocProtInProts in the protein vector
+ * get promoted by the presence of the protein iNeighborProtInProts in
+ * neighboring cells, with the provided kinetic constants.
+ * 
+ * CAUTION: It is assumed that iLocProtInProts and iNeighborProtInProts is 
+ * the index of a protein. No check is performed by the function to guarantee 
+ * this.
+ *
+ * The tasks that need to be performed are:
+ *
+ *		1. A new reaction is added describing the lateral promotion reaction.
+ *		2. This reaction is added to the internal data of the participating
+ *		proteins.
+ */
+
+void Manager::addLatPromReac( int iLocProtInProts , int iNeighborProtInProts ,
+							 double kinetic , double K ) {
+	
+	int iLocalProt = genes.size() + iLocProtInProts;
+	int iNeighborProt = genes.size() + iNeighborProtInProts;
+	
+	/* Step 1 */
+	reactions.push_back(new LatPromReaction(iLocalProt,iNeighborProt,
+											0.0,kinetic,K));
+	
+	/* Step 2 */
+	Reaction* currReac = reactions.at(reactions.size()-1); // add new LatPromReaction
+	proteins.at(iLocProtInProts)->addReaction(currReac); // to local protein
+	if ( iLocProtInProts != iNeighborProtInProts ) {
+		proteins.at(iNeighborProtInProts)->addReaction(currReac); // to neighbor protein
+	}
+	
+}
+
+/* Public Method: initialize()
+ * -------------------------------------------------------------------------- 
+ * Initialize by filling each dvec with the initial concentrations of the
+ * proteins and genes, finding current Dx values, and setting the time = 0.
+ */
+void Manager::initialize() {
+	resizeDVecs();
+	time = 0.0;
+	for ( int iCell = 0 ; iCell < iTissue.size() ; iCell++ ) {
+		for ( int iGene = 0 ; iGene < genes.size() ; iGene++ ) {
+			Gene* currGene = genes.at(iGene);
+			iTissue.at(iCell)->at(currGene->getISelf()) = currGene->getInitConc();
+			currTissue.at(iCell)->at(currGene->getISelf()) = currGene->getInitConc();
+		}
+		for ( int iProtein = 0 ; iProtein < proteins.size() ; iProtein++ ) {
+			Protein* currProtein = proteins.at(iProtein);
+			iTissue.at(iCell)->at(currProtein->getISelf()) = currProtein->getInitConc();
+			currTissue.at(iCell)->at(currProtein->getISelf()) = currProtein->getInitConc();
+		}
+	}
+	updateDx();
 }
 
 /* Public Method: integrate(mode,dt,numSteps)
@@ -202,9 +471,11 @@ void Manager::updateDx() {
 	}
 }
 
-/* Public Method: updateDx()
+/* Public Method: printState()
  * -------------------------------------------------------------------------- 
  * For the user.
+ * Currently goes through each cell in the vector and prints out the 
+ * protein concentrations in each cell, (assuming there are 6 of them).
  */
 void Manager::printState() {
 	std::cout << "time: " << time << std::endl;
@@ -218,7 +489,65 @@ void Manager::printState() {
 	std::cout << std::endl;
 }
 
+/* Private Method: addMolecules(num)
+ * -------------------------------------------------------------------------- 
+ * Replaces dvecs with with new ones incremented in length by num, and
+ * updates the numMol variable by incrementing by num.
+ *
+ * CAUTION: For num < 0, we decrease the number of molecules in the cell.
+ * In this case, we assume |num| <= numMol, or else we will have errors.
+ */
+void Manager::resizeDVecs() {
+	
+	for ( int iCell = 0 ; iCell < iTissue.size() ; iCell++ ) {
+		dvec* currVec = iTissue.at(iCell);
+		iTissue.at(iCell) = new dvec(numMol);
+		delete currVec;
+		currVec = currTissue.at(iCell);
+		currTissue.at(iCell) = new dvec(numMol);
+		delete currVec;
+		currVec = dx.at(iCell);
+		dx.at(iCell) = new dvec(numMol);
+		delete currVec;
+	}
+	
+}
 
-
-
+/* Private Method: updateIndices(firstIndex,numInsertions)
+ * -------------------------------------------------------------------------- 
+ * Goes through every gene, protein, and reaction and instructs them to 
+ * update their internally stored data regarding their own index in the
+ * dvecs and well as the index of other compounds they store (like their
+ * products, roots, promoters, etc.)
+ *
+ * firstIndex is the index of the first member of the insertions. A negative
+ * numInsertions refers to deletions.
+ *
+ * CAUTION: we assume firstIndex is within the range of our current number
+ * of molecules, and numInsertions, when negative, does not delete more
+ * substances than there are to delete. Errors will be produced otherwise.
+ *
+ * EXAMPLES: 
+ *
+ *		updateIndices(3,2) produces
+ *
+ *		  < 1 , 10 , 3 , 7 , 4 , 11 > --> < 1 , 10 , 3 ,___,___, 7 , 4 , 11 >
+ *
+ *		updateIndices(3,-2) produces
+ *
+ *		   < 1 , 10 , 3 , 7 , 4 , 11 > --> < 1 , 10 , 3 , 11 >
+ *
+ *		On the vector above, updateIndices(3,-4) would produce run-time errors.
+ */
+void Manager::updateIndices( int firstIndex , int numInsertions ) {
+	for ( int i = 0 ; i < genes.size() ; i++ ) {
+		genes.at(i)->updateIndices(firstIndex,numInsertions);
+	}
+	for ( int i = 0 ; i < proteins.size() ; i++ ) {
+		proteins.at(i)->updateIndices(firstIndex,numInsertions);
+	}
+	for ( int i = 0 ; i < reactions.size() ; i++ ) {
+		reactions.at(i)->updateIndices(firstIndex,numInsertions);
+	}
+}
 

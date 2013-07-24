@@ -24,10 +24,15 @@
 class Protein : public Molecule {
 
 public:
-	Protein( int iSelf , int iRootZero , int iRootOne );
+	Protein( int iSelf , int iRootZero , int iRootOne , double initConc );
 	~Protein();
 	
-private:
+	int getIRootZero();
+	int getIRootOne();
+	
+	virtual void updateIndices( int firstIndex , int numInsertions );
+	
+protected:
 	
 	/* All indices refer to their index in the genome containing them. */
 	
@@ -36,6 +41,7 @@ private:
 	 */
 	int iRootZero;
 	int iRootOne;
+
 };
 
 #endif

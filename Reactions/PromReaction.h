@@ -33,6 +33,8 @@ public:
 	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
 					   int iCurrCell , IntegrationType mode , double dt );
 	
+	virtual void updateIndices( int firstIndex , int numInsertions );
+	
 private:
 	
 	/* Where in the ODEManager are the participants located */
@@ -45,7 +47,7 @@ private:
 	
 	/* Kinetic constants for the reaction. */
 	double kinetic;
-	
+
 };
 
 # endif

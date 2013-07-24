@@ -16,7 +16,7 @@ PromBindingReaction::PromBindingReaction() {
 	
 }
 
-PromBindingReaction::PromBindingReaction( int iLoneGene , int iPromotedGene , int iProt ,
+PromBindingReaction::PromBindingReaction( int iRootGene , int iPromotedGene , int iBoundProtein ,
 					double dxLoneGene , double dxPromotedGene ,
 					double forwardKinetic , double backwardKinetic ) {
 	
@@ -24,10 +24,10 @@ PromBindingReaction::PromBindingReaction( int iLoneGene , int iPromotedGene , in
 	
 	numPart = 2;
 	
-	this->iLoneGene = iLoneGene;
+	this->iRootGene = iRootGene;
 	this->iPromotedGene = iPromotedGene;
-	this->iProt = iProt;
-	this->dxLoneGene = dxLoneGene;
+	this->iBoundProtein = iBoundProtein;
+	this->dxRootGene = dxRootGene;
 	this->dxPromotedGene = dxPromotedGene;
 	this->forwardKinetic = forwardKinetic;
 	this->backwardKinetic = backwardKinetic;
@@ -39,7 +39,7 @@ PromBindingReaction::~PromBindingReaction() {}
 int PromBindingReaction::getIPart( int partNum ) {
 	switch (partNum) {
 		case 0:
-			return iLoneGene;
+			return iRootGene;
 			break;
 		case 1:
 			return iPromotedGene;
@@ -52,7 +52,7 @@ int PromBindingReaction::getIPart( int partNum ) {
 double PromBindingReaction::getDx( int partNum ) {
 	switch (partNum) {
 		case 0:
-			return dxLoneGene;
+			return dxRootGene;
 			break;
 		case 1:
 			return dxPromotedGene;
@@ -72,22 +72,43 @@ void PromBindingReaction::react( std::vector< dvec* >& currTissue , std::vector<
 			
 		case RK1_DET_TI:
 			forwardFlow = forwardKinetic * 
-			currTissue.at(iCurrCell)->at(iLoneGene) *
-			currTissue.at(iCurrCell)->at(iProt);
+			currTissue.at(iCurrCell)->at(iRootGene) *
+			currTissue.at(iCurrCell)->at(iBoundProtein);
 			
 			backwardFlow = backwardKinetic *
 			currTissue.at(iCurrCell)->at(iPromotedGene);
 			
-			dxLoneGene = (backwardFlow - forwardFlow) * dt;
+			dxRootGene = (backwardFlow - forwardFlow) * dt;
 			dxPromotedGene = (forwardFlow - backwardFlow) * dt;
 			break;
 			
 		default:
-			dxLoneGene = 0.0;
+			dxRootGene = 0.0;
 			dxPromotedGene = 0.0;
 			break;
 			
 	}
+}
+
+/* Public Method: updateIndices(firstIndex,numInsertions)
+ * -------------------------------------------------------------------------- 
+ * Updates the index of iRootGene, iPromotedGene, iBoundProtein, given an 
+ * insertion of size numInsertions, beginning at firstIndex, into our dvecs 
+ * containing molecule concentrations in our manager.
+ *
+ * See description for updateIndices private method of the manager class in
+ * the Manager.cpp file for more precise description of insertion process.
+ *
+ * Note: Because NEXIST = -1, it will never be updated by insertion procedure,
+ * as desired.
+ *
+ * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
+ */
+
+void PromBindingReaction::updateIndices( int firstIndex , int numInsertions ) {
+	if (iRootGene >= firstIndex) iRootGene += numInsertions;
+	if (iPromotedGene >= firstIndex) iPromotedGene += numInsertions;
+	if (iBoundProtein >= firstIndex) iBoundProtein += numInsertions;
 }
 
 

@@ -31,14 +31,19 @@ public:
 	Molecule();
 	~Molecule();
 	
-	unsigned int getI();
+	unsigned int getISelf();
+	double getInitConc();
 	void addReaction(Reaction* const reacRef);
+	
+	virtual void updateIndices( int firstIndex , int numInsertion) = 0;
 	
 protected:
 	
 	static const int NEXIST = -1;
 	
-	unsigned int i;
+	unsigned int iSelf;
+	
+	double initConc;
 	
 	/* The GenomeReactions are owned by the Genome class. The Molecule
 	 * class references them only so the molecule can know which

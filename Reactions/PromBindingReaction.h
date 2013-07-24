@@ -27,8 +27,8 @@ class PromBindingReaction : public Reaction {
 	
 public:
 	PromBindingReaction();
-	PromBindingReaction( int iLoneGene , int iPromotedGene , int iProt ,
-						double dxLoneGene , double dxPromotedGene ,
+	PromBindingReaction( int iRootGene , int iPromotedGene , int iBoundProtein ,
+						double dxRootGene , double dxPromotedGene ,
 						double forwardKinetic , double backwardKinetic );
 	~PromBindingReaction();
 	
@@ -38,16 +38,18 @@ public:
 	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
 					   int iCurrCell , IntegrationType mode , double dt );
 	
+	virtual void updateIndices( int firstIndex , int numInsertions );
+	
 private:
 	
 	/* Where in the ODEManager are the participants located */
-	int iLoneGene;
+	int iRootGene;
 	int iPromotedGene;
-	int iProt;
+	int iBoundProtein;
 	
 	/* What is the current rate of change of concentrations for the participants
 	 * in this reaction */
-	double dxLoneGene;
+	double dxRootGene;
 	double dxPromotedGene;
 	
 	/* Kinetic constants for the reaction. */
