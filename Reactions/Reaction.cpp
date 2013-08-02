@@ -17,6 +17,6 @@ Reaction::~Reaction() {}
  * --------------------------------------------------------------------------
  * Returns the number of participants in this reaction. 
  */
-int Reaction::getNumPart() {
-	return numPart;
+int Reaction::get_num_part() {
+	return _num_part;
 }

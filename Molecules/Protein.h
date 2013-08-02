@@ -24,13 +24,13 @@
 class Protein : public Molecule {
 
 public:
-	Protein( int iSelf , int iRootZero , int iRootOne , double initConc );
+	Protein( int i_self , int i_root_zero , int i_root_one , double init_conc );
 	~Protein();
 	
-	int getIRootZero();
-	int getIRootOne();
+	int get_i_root_zero();
+	int get_i_root_one();
 	
-	virtual void updateIndices( int firstIndex , int numInsertions );
+	virtual void update_indices( int first_index , int num_insertions );
 	
 protected:
 	
@@ -39,8 +39,8 @@ protected:
 	/* If the protein is a complex, what are the indices of the proteins that
 	 * make it up. (Note these can be complexes themselves, or be the same.)
 	 */
-	int iRootZero;
-	int iRootOne;
+	int _i_root_zero;
+	int _i_root_one;
 
 };
 

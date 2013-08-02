@@ -10,34 +10,33 @@
 
 LatPromReaction::LatPromReaction() {
 	
-	type = LATERAL_PROMOTION;
+	_type = LATERAL_PROMOTION;
 	
-	numPart = 1;
+	_num_part = 1;
 	
 }
 
-LatPromReaction::LatPromReaction( int iLocalProt , int iNeighborProt ,
-								 double dxLocalProt , double kinetic ,
+LatPromReaction::LatPromReaction( int i_local_prot , int i_neighbor_prot ,
+								 double kinetic ,
 								 double K ) {
 	
-	type = LATERAL_PROMOTION;
+	_type = LATERAL_PROMOTION;
 	
-	numPart = 1;
+	_num_part = 1;
 	
-	this->iLocalProt = iLocalProt;
-	this->iNeighborProt = iNeighborProt;
-	this->dxLocalProt = dxLocalProt;
-	this->kinetic = kinetic;
-	this->K = K;
+	_i_local_prot = i_local_prot;
+	_i_neighbor_prot = i_neighbor_prot;
+	_kinetic = kinetic;
+	_K = K;
 	
 }
 
 LatPromReaction::~LatPromReaction() {}
 
-int LatPromReaction::getIPart( int partNum ) {
-	switch (partNum) {
+int LatPromReaction::get_i_part( int part_num ) {
+	switch (part_num) {
 		case 0:
-			return iLocalProt;
+			return _i_local_prot;
 			break;
 		default:
 			return NEXIST;
@@ -45,53 +44,31 @@ int LatPromReaction::getIPart( int partNum ) {
 	}
 }
 
-double LatPromReaction::getDx( int partNum ) {
-	switch (partNum) {
-		case 0:
-			return dxLocalProt;
-			break;
-		default:
-			break;
+void LatPromReaction::react( dmat& curr_tissue , dmat& dx_dt , 
+							std::vector< std::vector<int>* >& neighbors,
+							int i_curr_cell ) {
+	
+	/* Compute average concentration of neighboring protein */
+	double neighbor_sum = 0.0;
+	double avg_neighbor_conc;
+	for (int i = 0; i < neighbors.at(i_curr_cell)->size() ; i++) {
+		neighbor_sum += curr_tissue.at( neighbors.at(i_curr_cell)->at(i) , _i_neighbor_prot );
 	}
+	avg_neighbor_conc = neighbor_sum/neighbors.at(i_curr_cell)->size();
+	
+	/* Compute dx_dt */
+	double r = _kinetic * (pow(avg_neighbor_conc,2))/(_K+pow(avg_neighbor_conc,2));
+	dx_dt.at( i_curr_cell , _i_local_prot ) += r;
+	
 }
 
-void LatPromReaction::react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-									int iCurrCell , IntegrationType mode , double dt ) {
-	
-	double neighborSum;
-	double avgNeighborConc;
-	
-	switch (mode) {
-			
-		case RK1_DET_TI:
-			
-			neighborSum = 0.0;
-			for (int i = 0; i < neighbors.at(iCurrCell)->size() ; i++) {
-				neighborSum += currTissue.at(neighbors.at(iCurrCell)->at(i))->at(iNeighborProt);
-			}
-			avgNeighborConc = neighborSum/neighbors.at(iCurrCell)->size();
-			
-			dxLocalProt = kinetic * (pow(avgNeighborConc,2))/(K+pow(avgNeighborConc,2)) * dt;
-			
-			if ( abs(avgNeighborConc-.5) < .01 ) {
-				int k = 2;
-			}
-			break;
-			
-		default:
-			dxLocalProt = 0.0;
-			break;
-			
-	}
-}
-
-/* Public Method: updateIndices(firstIndex,numInsertions)
+/* Public Method: update_indices(first_index,num_insertion)
  * -------------------------------------------------------------------------- 
- * Updates the index of iLocalProt, iNeighborProt, given an insertion of size 
- * numInsertions, beginning at firstIndex, into our dvecs containing molecule 
- * concentrations in our manager.
+ * Updates the index of _i_local_prot, _i_neighbor_prot, given an insertion 
+ * of size num_insertion, beginning at first_index, into our dvecs containing 
+ * molecule concentrations in our manager.
  *
- * See description for updateIndices private method of the manager class in
+ * See description for update_indices private method of the manager class in
  * the Manager.cpp file for more precise description of insertion process.
  *
  * Note: Because NEXIST = -1, it will never be updated by insertion procedure,
@@ -100,8 +77,8 @@ void LatPromReaction::react( std::vector< dvec* >& currTissue , std::vector< std
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void LatPromReaction::updateIndices( int firstIndex , int numInsertions ) {
-	if (iLocalProt >= firstIndex) iLocalProt += numInsertions;
-	if (iNeighborProt >= firstIndex) iNeighborProt += numInsertions;
+void LatPromReaction::update_indices( int first_index , int num_insertion ) {
+	if (_i_local_prot >= first_index) _i_local_prot += num_insertion;
+	if (_i_neighbor_prot >= first_index) _i_neighbor_prot += num_insertion;
 }
 

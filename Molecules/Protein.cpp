@@ -11,11 +11,11 @@
 /* Constructor: Protein()
  * -------------------------------------------------------------------------- 
  */
-Protein::Protein( int iSelf , int iRootZero , int iRootOne , double initConc ) {
-	this->iRootZero = iRootZero;
-	this->iRootOne = iRootOne;
-	this->iSelf = iSelf;
-	this->initConc = initConc;
+Protein::Protein( int i_self , int i_root_zero , int i_root_one , double init_conc ) {
+	_i_root_zero = i_root_zero;
+	_i_root_one = i_root_one;
+	_i_self = i_self;
+	_init_conc = init_conc;
 	
 	/* reactions will automatically initiate to empty vector */
 }
@@ -32,8 +32,8 @@ Protein::~Protein() {}
  * first member protein in this complex. If it is not a complex, returns
  * NEXIST.
  */
-int Protein::getIRootZero() {
-	return iRootZero;
+int Protein::get_i_root_zero() {
+	return _i_root_zero;
 }
 
 /* Public Method: getIRootOne()
@@ -42,8 +42,8 @@ int Protein::getIRootZero() {
  * second member protein in this complex. If it is not a complex, returns
  * NEXIST.
  */
-int Protein::getIRootOne() {
-	return iRootOne;
+int Protein::get_i_root_one() {
+	return _i_root_one;
 }
 
 /* Private Method: updateIndices(firstIndex,numInsertions)
@@ -61,10 +61,10 @@ int Protein::getIRootOne() {
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void Protein::updateIndices( int firstIndex , int numInsertions ) {
-	if (iSelf >= firstIndex) iSelf += numInsertions;
-	if (iRootZero >= firstIndex) iRootZero += numInsertions;
-	if (iRootOne >= firstIndex) iRootOne += numInsertions;
+void Protein::update_indices( int first_index , int num_insertion ) {
+	if (_i_self >= first_index) _i_self += num_insertion;
+	if (_i_root_zero >= first_index) _i_root_zero += num_insertion;
+	if (_i_root_one >= first_index) _i_root_one += num_insertion;
 }
 
 

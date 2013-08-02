@@ -26,29 +26,29 @@
 class Gene : public Molecule {
 
 public:
-	Gene( int iSelf, int iProduct , int iBoundPromoter , int iRoot , double initConc );
+	Gene( int i_self, int i_product , int i_bound_promoter , int i_root , double init_conc );
 	~Gene();
 	
-	int getIProduct();
-	int getIBoundPromoter();
-	int getIRoot();
+	int get_i_product();
+	int get_i_bound_promoter();
+	int get_i_root();
 	
-	virtual void updateIndices( int firstIndex , int numInsertions );
+	virtual void update_indices( int first_index , int num_insertions );
 	
 protected:
 	
 	/* All indices refer to their index in the genome containing them. */
 	
 	/* Which protein does the gene code for */
-	int iProduct;
+	int _i_product;
 	
 	/* If the gene has a promoter bound to it, which is it */
-	int iBoundPromoter;
+	int _i_bound_promoter;
 	
 	/* If the gene has a promoter bound to it, which is the base, promoter free
 	 * gene.
 	 */
-	int iRoot;
+	int _i_root;
 	
 };
 

@@ -29,35 +29,28 @@ class CombReaction : public Reaction {
 
 public:
 	CombReaction();
-	CombReaction( int iReacZero , int iReacOne , int iProduct ,
-				 double dxReacZero , double dxReacOne , double dxProduct ,
-				 double forwardKinetic , double backwardKinetic );
+	CombReaction( int i_reac_zero , int i_reac_one , int i_product ,
+				 double forward_kinetic , double backward_kinetic );
 	~CombReaction();
 
-	virtual int getIPart( int partNum );
-	virtual double getDx( int partNum );
+	virtual int get_i_part( int part_num );
 	
-	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-						int iCurrCell , IntegrationType mode , double dt );
+	virtual void react( dmat& curr_tissue , dmat& dx_dt , 
+					   std::vector< std::vector<int>* >& neighbors ,
+					   int i_curr_cell );
 	
-	virtual void updateIndices( int firstIndex , int numInsertions);
+	virtual void update_indices( int first_index , int num_insertions);
 	
 private:
 	
 	/* Where in the ODEManager are the participants located */
-	int iReacZero;
-	int iReacOne;
-	int iProduct;
-	
-	/* What is the current rate of change of concentrations for the participants
-	 * in this reaction */
-	double dxReacZero;
-	double dxReacOne;
-	double dxProduct;
+	int _i_reac_zero;
+	int _i_reac_one;
+	int _i_product;
 	
 	/* Kinetic constants for the reaction. */
-	double forwardKinetic;
-	double backwardKinetic;
+	double _forward_kinetic;
+	double _backward_kinetic;
 };
 
 # endif

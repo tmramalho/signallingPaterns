@@ -10,30 +10,29 @@
 
 DegReaction::DegReaction() {
 	
-	type = DEGRADATION;
+	_type = DEGRADATION;
 	
-	numPart = 1;
+	_num_part = 1;
 	
 }
 
-DegReaction::DegReaction( int iReac , double dxReac , double kinetic ) {
+DegReaction::DegReaction( int i_reac , double kinetic ) {
 	
-	type = DEGRADATION;
+	_type = DEGRADATION;
 	
-	numPart = 1;
+	_num_part = 1;
 	
-	this->iReac = iReac;
-	this->dxReac = dxReac;
-	this->kinetic = kinetic;
+	_i_reac = i_reac;
+	_kinetic = kinetic;
 	
 }
 
 DegReaction::~DegReaction() {}
 
-int DegReaction::getIPart( int partNum ) {
-	switch (partNum) {
+int DegReaction::get_i_part( int part_num ) {
+	switch (part_num) {
 		case 0:
-			return iReac;
+			return _i_reac;
 			break;
 		default:
 			return NEXIST;
@@ -41,36 +40,21 @@ int DegReaction::getIPart( int partNum ) {
 	}
 }
 
-double DegReaction::getDx( int partNum ) {
-	switch (partNum) {
-		case 0:
-			return dxReac;
-			break;
-		default:
-			break;
-	}
-}
-
-void DegReaction::react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-								int iCurrCell , IntegrationType mode , double dt ) {
-	switch (mode) {
-		
-		case RK1_DET_TI:
-			dxReac = - kinetic * dt * currTissue.at(iCurrCell)->at(iReac);
-			break;
-		
-		default:
-			break;
-	}
+void DegReaction::react( dmat& curr_tissue , dmat& dx_dt ,
+						 std::vector< std::vector<int>* >& neighbors,
+						 int i_curr_cell ) {
 	
+	double r = _kinetic * curr_tissue.at(i_curr_cell,_i_reac);
+	
+	dx_dt.at(i_curr_cell,_i_reac) -= r;
 	
 }
 
-/* Public Method: updateIndices(firstIndex,numInsertions)
+/* Public Method: updateIndices(first_index,num_insertion)
  * -------------------------------------------------------------------------- 
- * Updates the index of iReac, given an insertion of size numInsertions, 
- * beginning at firstIndex, into our dvecs containing molecule concentrations 
- * in our manager.
+ * Updates the index of _i_reac, given an insertion of size num_insertion, 
+ * beginning at first_index, into our dvecs containing molecule 
+ * concentrations in our manager.
  *
  * See description for updateIndices private method of the manager class in
  * the Manager.cpp file for more precise description of insertion process.
@@ -81,8 +65,8 @@ void DegReaction::react( std::vector< dvec* >& currTissue , std::vector< std::ve
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void DegReaction::updateIndices( int firstIndex , int numInsertions ) {
-	if (iReac >= firstIndex) iReac += numInsertions;
+void DegReaction::update_indices( int first_index , int num_insertion ) {
+	if (_i_reac >= first_index) _i_reac += num_insertion;
 }
 
 

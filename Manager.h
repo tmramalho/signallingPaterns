@@ -14,6 +14,7 @@
 # include <cstring>
 
 # include "old/numeric/dvec.h"
+# include "old/numeric/dmat.h"
 # include "Reactions/Reaction.h"
 # include "Reactions/CombReaction.h"
 # include "Reactions/DegReaction.h"
@@ -53,31 +54,31 @@ public:
 	Manager();
 	~Manager();
 	
-	void setMode( IntegrationType mode );
-	IntegrationType getMode();
+	void set_mode( IntegrationType mode );
+	IntegrationType get_mode();
 	
-	void setDt( double dt );
-	double getDt();
+	void set_dt( double dt );
+	double get_dt();
 	
 	/* Adding Reactions */
-	void addGene( double prodRate , double degRate );
-	void addPromBindingReac( int iGeneInGenes , int iProtInProts ,
-							double forwardKinetic , double backwardKinetic , 
-							double newProdRate );
+	void add_gene( double prod_rate , double deg_rate );
+	void add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
+							 double forward_kinetic , double backward_kinetic , 
+							 double new_prod_rate );
 	//void addPhosphReac();
 	//void addPartialDegReac();
-	void addCombReaction( int iProtZeroInProts , int iProtOneInProts , 
-						 double forwardKinetic , double backwardKinetic );
+	void add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_prots , 
+						  double forward_kinetic , double backward_kinetic );
 	//void addPartialCatDegReac();
-	void addLatPromReac( int iLocProtInProts , int iNeighborProtInProts ,
-						double kinetic , double K );
+	void add_LatPromReac( int i_loc_prot_in_prots , int i_neighbor_prot_in_prots ,
+						 double kinetic , double K );
 	
 	/* Functions for running the ODE */
 	void initialize();
-	void integrate( int numSteps );
+	void integrate( int num_step );
 	
-	/* Display Function */
-	void printState();
+	/* Display Functions */
+	void print_state();
 	//void printGenome();
 	
 private:
@@ -108,7 +109,7 @@ private:
 	 * he or she wants.
 	 *
 	 */
-	std::vector< std::vector<int>* > neighbors;
+	std::vector< std::vector<int>* > _neighbors;
 	
 	/* State vectors */
 	/* The class is implemented so that these always up-to-date. In particular,
@@ -117,35 +118,42 @@ private:
 	 * change in our ODE, we only need to ask the ODEManager to look in the
 	 * dxdt vector. All calculations should have already been done.
 	 */
-	std::vector< dvec* > iTissue, currTissue, dx;
+	dmat _i_tissue, _curr_tissue;
 	
 	/* Gene and protein info */
-	std::vector<Gene*> genes;
-	std::vector<Protein*> proteins;
+	std::vector<Gene*> _genes;
+	std::vector<Protein*> _proteins;
 	
 	/* Time variables */
-	double dt; 
-	double time;
+	double _dt; 
+	double _time;
 	
 	/* Number of molecules */
-	int numMol;
+	int _num_mol;
+	
+	/* Number of cells */
+	int _num_cell;
 	
 	/* Vector of Reactions */
-	std::vector< Reaction* > reactions;
+	std::vector< Reaction* > _reactions;
 	
 	/* Integration Mode */
-	IntegrationType mode;
+	IntegrationType _mode;
 	
 	/* Copy and assignment operators made private */
 	Manager( Manager *newOne );
 	Manager& operator=( const Manager& rhs );
 	
 	/* Helpers for running of ODEs */
-	void updateDx();
+	void react( dmat& xi , dmat& dx_dt);
 	
 	/* Helpers for mutating genome */
-	void resizeDVecs();
-	void updateIndices( int firstIndex , int numInsertions );
+	void resize_dmats();
+	void update_indices( int first_index , int num_insertion );
+	
+	/* Integration Types Methods */
+	void rk4_det_ti ( int num_step );
+	void rk4_stc_ti ( int num_step );
 	
 };
 

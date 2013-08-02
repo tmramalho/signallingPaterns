@@ -6,8 +6,6 @@
 #include <iostream>
 #include <vector>
 
-// TRIAL COMMIT
-
 class dvec {
 	
 public:
@@ -23,6 +21,7 @@ public:
 	void copy(dvec &other);
 	void copy(dvec *other);
 	double &at(int pos);
+	double get_at(int pos) const;
 	void zero();
 	void set(double num);
 	void set(const dvec &other);
@@ -40,11 +39,32 @@ public:
 	double operator* (dvec &other);
 	friend std::ostream &operator <<(std::ostream &output, dvec &vector);
 	
+	void equals_lin_comb(const dvec &vec1, double c1);
+	void equals_lin_comb(const dvec &vec1, double c1,
+						 const dvec &vec2, double c2);
+	void equals_lin_comb(const dvec &vec1, double c1,
+						 const dvec &vec2, double c2,
+						 const dvec &vec3, double c3);
+	void equals_lin_comb(const dvec &vec1, double c1,
+						 const dvec &vec2, double c2,
+						 const dvec &vec3, double c3,
+						 const dvec &vec4, double c4);
+	
+	void plus_equals_lin_comb(const dvec &vec1, double c1);
+	void plus_equals_lin_comb(const dvec &vec1, double c1,
+							  const dvec &vec2, double c2);
+	void plus_equals_lin_comb(const dvec &vec1, double c1,
+							  const dvec &vec2, double c2,
+							  const dvec &vec3, double c3);
+	void plus_equals_lin_comb(const dvec &vec1, double c1,
+							  const dvec &vec2, double c2,
+							  const dvec &vec3, double c3,
+							  const dvec &vec4, double c4);
+	
 protected:
 	double getValue(int pos) const;
-	
-private:
 	double *_main;
+	
 	unsigned int _size;
 };
 

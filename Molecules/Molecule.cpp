@@ -25,8 +25,8 @@ Molecule::~Molecule() {}
  * refers only to its index in the vector that contains it. To know in which
  * vector to look, we also need its type.
  */
-unsigned int Molecule::getISelf() {
-	return iSelf;
+unsigned int Molecule::get_i_self() {
+	return _i_self;
 }
 
 /* Public Method: getInitConc()
@@ -34,8 +34,8 @@ unsigned int Molecule::getISelf() {
  * Returns the initial concentration of the gene in the simulation.
  */
 
-double Molecule::getInitConc() {
-	return initConc;
+double Molecule::get_init_conc() {
+	return _init_conc;
 }
 
 /* Public Method: addReaction(reacRef)
@@ -47,8 +47,19 @@ double Molecule::getInitConc() {
  * the genome does. The molecule, even in its destructor, should never delete
  * these reactions.
  */
-void Molecule::addReaction(Reaction* const reacRef){
-	reactions.push_back(reacRef);
+void Molecule::add_reaction(Reaction* reac_ref){
+	_reactions.push_back(reac_ref);
+	int i = 3;
 }
+
+Reaction* Molecule::get_reaction( int i_reac ) {
+	return _reactions.at( i_reac );
+}
+
+
+
+
+
+
 
 

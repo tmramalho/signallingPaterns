@@ -9,7 +9,7 @@
 # ifndef INTEGRATIONTYPE_H
 # define INTEGRATIONTYPE_H
 
-enum IntegrationType { RK1_DET_TI , RK2_DET_TI };
+enum IntegrationType { RK1_DET_TI , RK2_DET_TI , RK4_DET_TI , RK4_STC_TI };
 
 # endif
 

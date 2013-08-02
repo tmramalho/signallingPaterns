@@ -8,12 +8,12 @@
 
 #include "Gene.h"
 
-Gene::Gene( int iSelf, int iProduct , int iBoundPromoter , int iRoot , double initConc ) {
-	this->iProduct = iProduct;
-	this->iBoundPromoter = iBoundPromoter;
-	this->iRoot = iRoot;
-	this->iSelf = iSelf;
-	this->initConc = initConc;
+Gene::Gene( int i_self, int i_product , int i_bound_promoter , int i_root , double init_conc ) {
+	_i_product = i_product;
+	_i_bound_promoter = i_bound_promoter;
+	_i_root = i_root;
+	_i_self = i_self;
+	_init_conc = init_conc;
 }
 
 /* Destructor: ~Gene()
@@ -26,8 +26,8 @@ Gene::~Gene() {}
  * -------------------------------------------------------------------------- 
  * Returns the index of this gene in the dvecs held in the cell.
  */
-int Gene::getIProduct() {
-	return iProduct;
+int Gene::get_i_product() {
+	return _i_product;
 }
 
 /* Public Method: getIBoundPromoter()
@@ -36,8 +36,8 @@ int Gene::getIProduct() {
  * gene as a promoter (or represser). If there is no such protein, returns
  * NEXIST.
  */
-int Gene::getIBoundPromoter() {
-	return iBoundPromoter;
+int Gene::get_i_bound_promoter() {
+	return _i_bound_promoter;
 }
 
 /* Public Method: getIRoot()
@@ -49,11 +49,11 @@ int Gene::getIBoundPromoter() {
  * Example: For the gene-protein complex a:B, this would return the index of
  * a
  */
-int Gene::getIRoot() {
-	return iRoot;
+int Gene::get_i_root() {
+	return _i_root;
 }
 
-/* Private Method: updateIndices(firstIndex,numInsertions)
+/* Private Method: updateIndices(first_index,num_insertion)
  * -------------------------------------------------------------------------- 
  * Updates the index of iSelf, iProduct, iBoundPromoter, iRoot, given an 
  * insertion of size numInsertions, beginning at firstIndex, into our dvecs 
@@ -68,11 +68,11 @@ int Gene::getIRoot() {
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void Gene::updateIndices( int firstIndex , int numInsertions ) {
-	if ( iSelf >= firstIndex ) iSelf += numInsertions;
-	if ( iProduct >= firstIndex ) iProduct += numInsertions;
-	if ( iBoundPromoter >= firstIndex ) iBoundPromoter += numInsertions;
-	if ( iRoot >= firstIndex ) iRoot += numInsertions;
+void Gene::update_indices( int first_index , int num_insertion ) {
+	if ( _i_self >= first_index ) _i_self += num_insertion;
+	if ( _i_product >= first_index ) _i_product += num_insertion;
+	if ( _i_bound_promoter >= first_index ) _i_bound_promoter += num_insertion;
+	if ( _i_root >= first_index ) _i_root += num_insertion;
 }
 
 

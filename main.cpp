@@ -41,7 +41,10 @@ int main()
 {
 	Manager manager;
 	
-	manager.integrate(1000);
+	manager.integrate(10000);
+	
+	int k = 0;
 	
 	return 0;
+	
 }

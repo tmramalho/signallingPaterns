@@ -10,91 +10,63 @@
 
 PromBindingReaction::PromBindingReaction() {
 	
-	type = PROMOTER_BINDING;
+	_type = PROMOTER_BINDING;
 	
-	numPart = 2;
+	_num_part = 2;
 	
 }
 
-PromBindingReaction::PromBindingReaction( int iRootGene , int iPromotedGene , int iBoundProtein ,
-					double dxLoneGene , double dxPromotedGene ,
-					double forwardKinetic , double backwardKinetic ) {
+PromBindingReaction::PromBindingReaction( int i_root_gene , int i_promoted_gene , int i_bound_protein ,
+										 double forward_kinetic , double backward_kinetic ) {
 	
-	type = PROMOTER_BINDING;
+	_type = PROMOTER_BINDING;
 	
-	numPart = 2;
+	_num_part = 2;
 	
-	this->iRootGene = iRootGene;
-	this->iPromotedGene = iPromotedGene;
-	this->iBoundProtein = iBoundProtein;
-	this->dxRootGene = dxRootGene;
-	this->dxPromotedGene = dxPromotedGene;
-	this->forwardKinetic = forwardKinetic;
-	this->backwardKinetic = backwardKinetic;
+	_i_root_gene = i_root_gene;
+	_i_promoted_gene = i_promoted_gene;
+	_i_bound_protein = i_bound_protein;
+	_forward_kinetic = forward_kinetic;
+	_backward_kinetic = backward_kinetic;
 	
 }
 
 PromBindingReaction::~PromBindingReaction() {}
 
-int PromBindingReaction::getIPart( int partNum ) {
-	switch (partNum) {
+int PromBindingReaction::get_i_part( int part_num ) {
+	switch (part_num) {
 		case 0:
-			return iRootGene;
+			return _i_root_gene;
 			break;
 		case 1:
-			return iPromotedGene;
+			return _i_promoted_gene;
 		default:
 			return NEXIST;
 			break;
 	}
 }
 
-double PromBindingReaction::getDx( int partNum ) {
-	switch (partNum) {
-		case 0:
-			return dxRootGene;
-			break;
-		case 1:
-			return dxPromotedGene;
-			break;
-		default:
-			break;
-	}
+void PromBindingReaction::react( dmat& curr_tissue , dmat& dx_dt ,
+								std::vector< std::vector<int>* >& neighbors,
+								int i_curr_cell ) {
+	
+	double r =
+	_forward_kinetic
+	* curr_tissue.at(i_curr_cell , _i_root_gene)
+	* curr_tissue.at(i_curr_cell, _i_bound_protein)
+	- 
+	_backward_kinetic
+	* curr_tissue.at(i_curr_cell,_i_promoted_gene);
+	
+	dx_dt.at(i_curr_cell,_i_root_gene) -= r;
+	dx_dt.at(i_curr_cell, _i_promoted_gene) += r;
 }
 
-void PromBindingReaction::react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-									int iCurrCell , IntegrationType mode , double dt ) {
-	
-	double forwardFlow;
-	double backwardFlow;
-	
-	switch (mode) {
-			
-		case RK1_DET_TI:
-			forwardFlow = forwardKinetic * 
-			currTissue.at(iCurrCell)->at(iRootGene) *
-			currTissue.at(iCurrCell)->at(iBoundProtein);
-			
-			backwardFlow = backwardKinetic *
-			currTissue.at(iCurrCell)->at(iPromotedGene);
-			
-			dxRootGene = (backwardFlow - forwardFlow) * dt;
-			dxPromotedGene = (forwardFlow - backwardFlow) * dt;
-			break;
-			
-		default:
-			dxRootGene = 0.0;
-			dxPromotedGene = 0.0;
-			break;
-			
-	}
-}
-
-/* Public Method: updateIndices(firstIndex,numInsertions)
+/* Public Method: update_indices(first_index,num_insertion)
  * -------------------------------------------------------------------------- 
- * Updates the index of iRootGene, iPromotedGene, iBoundProtein, given an 
- * insertion of size numInsertions, beginning at firstIndex, into our dvecs 
- * containing molecule concentrations in our manager.
+ * Updates the index of _i_root_gene, _i_promoted_gene, _i_bound_protein, 
+ * given an insertion of size num_insertion, beginning at first_index, into 
+ * our dvecs containing molecule concentrations in our manager.
  *
  * See description for updateIndices private method of the manager class in
  * the Manager.cpp file for more precise description of insertion process.
@@ -102,13 +74,13 @@ void PromBindingReaction::react( std::vector< dvec* >& currTissue , std::vector<
  * Note: Because NEXIST = -1, it will never be updated by insertion procedure,
  * as desired.
  *
- * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
+ * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUM_INSERTION >= 0. 
  */
 
-void PromBindingReaction::updateIndices( int firstIndex , int numInsertions ) {
-	if (iRootGene >= firstIndex) iRootGene += numInsertions;
-	if (iPromotedGene >= firstIndex) iPromotedGene += numInsertions;
-	if (iBoundProtein >= firstIndex) iBoundProtein += numInsertions;
+void PromBindingReaction::update_indices( int first_index , int num_insertion ) {
+	if (_i_root_gene >= first_index) _i_root_gene += num_insertion;
+	if (_i_promoted_gene >= first_index) _i_promoted_gene += num_insertion;
+	if (_i_bound_protein >= first_index) _i_bound_protein += num_insertion;
 }
 
 

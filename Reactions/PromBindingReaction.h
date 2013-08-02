@@ -27,34 +27,28 @@ class PromBindingReaction : public Reaction {
 	
 public:
 	PromBindingReaction();
-	PromBindingReaction( int iRootGene , int iPromotedGene , int iBoundProtein ,
-						double dxRootGene , double dxPromotedGene ,
-						double forwardKinetic , double backwardKinetic );
+	PromBindingReaction( int i_root_gene , int i_promoted_gene , int i_bound_protein ,
+						double forward_kinetic , double backward_kinetic );
 	~PromBindingReaction();
 	
-	virtual int getIPart( int partNum );
-	virtual double getDx( int partNum );
+	virtual int get_i_part( int part_num );
 	
-	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-					   int iCurrCell , IntegrationType mode , double dt );
+	virtual void react( dmat& curr_tissue , dmat& dx_dt ,
+					    std::vector< std::vector<int>* >& neighbors,
+					    int i_curr_cell );
 	
-	virtual void updateIndices( int firstIndex , int numInsertions );
+	virtual void update_indices( int first_index , int num_insertion );
 	
 private:
 	
 	/* Where in the ODEManager are the participants located */
-	int iRootGene;
-	int iPromotedGene;
-	int iBoundProtein;
-	
-	/* What is the current rate of change of concentrations for the participants
-	 * in this reaction */
-	double dxRootGene;
-	double dxPromotedGene;
+	int _i_root_gene;
+	int _i_promoted_gene;
+	int _i_bound_protein;
 	
 	/* Kinetic constants for the reaction. */
-	double forwardKinetic;
-	double backwardKinetic;
+	double _forward_kinetic;
+	double _backward_kinetic;
 	
 };
 

@@ -114,6 +114,11 @@ double &dvec::at(int pos) {
 	else return _main[0];
 }
 
+double dvec::get_at(int pos) const {
+	if(pos > 0 && (unsigned int)pos <= _size) return _main[pos];
+	else return _main[0];
+}
+
 double &dvec::operator[](int pos) {
 	if(pos > 0 && (unsigned int)pos <= _size) return _main[pos];
 	else return _main[0];
@@ -214,3 +219,86 @@ std::ostream &operator <<(std::ostream &output, dvec &vector) {
 	}
 	return output;
 }
+
+/* CAUTION: MEMORY ERROR IF DVEC NOT ALREADY ALLOCATED THE RIGHT SIZE */
+void dvec::equals_lin_comb(const dvec &vec1, double c1) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] = vec1.get_at(i)*c1;
+	}
+}
+
+void dvec::equals_lin_comb(const dvec &vec1, double c1,
+						   const dvec &vec2, double c2) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] = 
+		vec1.get_at(i)*c1 + 
+		vec2.get_at(i)*c2;
+	}
+}
+
+void dvec::equals_lin_comb(const dvec &vec1, double c1,
+						   const dvec &vec2, double c2,
+						   const dvec &vec3, double c3) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] = 
+		vec1.get_at(i)*c1 + 
+		vec2.get_at(i)*c2 +
+		vec3.get_at(i)*c3;
+	}
+}
+
+void dvec::equals_lin_comb(const dvec &vec1, double c1,
+						   const dvec &vec2, double c2,
+						   const dvec &vec3, double c3,
+						   const dvec &vec4, double c4) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] = 
+		vec1.get_at(i)*c1 + 
+		vec2.get_at(i)*c2 +
+		vec3.get_at(i)*c3 +
+		vec4.get_at(i)*c4;
+	}
+}
+
+void dvec::plus_equals_lin_comb(const dvec &vec1, double c1) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] += vec1.get_at(i)*c1;
+	}
+}
+
+void dvec::plus_equals_lin_comb(const dvec &vec1, double c1,
+								const dvec &vec2, double c2) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] += 
+		(vec1.get_at(i)*c1 +
+		 vec2.get_at(i)*c2);
+	}
+}
+
+void dvec::plus_equals_lin_comb(const dvec &vec1, double c1,
+								const dvec &vec2, double c2,
+								const dvec &vec3, double c3) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] += 
+		(vec1.get_at(i)*c1 +
+		 vec2.get_at(i)*c2 +
+		 vec3.get_at(i)*c3);
+	}
+}
+
+void dvec::plus_equals_lin_comb(const dvec &vec1, double c1,
+								const dvec &vec2, double c2,
+								const dvec &vec3, double c3,
+								const dvec &vec4, double c4) {
+	for(unsigned int i = 0 ; i < _size ; i++) {
+		_main[i] += 
+		(vec1.get_at(i)*c1 +
+		 vec2.get_at(i)*c2 +
+		 vec3.get_at(i)*c3 +
+		 vec4.get_at(i)*c4);
+	}
+}
+
+
+
+

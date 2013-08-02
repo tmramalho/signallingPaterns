@@ -24,28 +24,24 @@ class DegReaction : public Reaction {
 	
 public:
 	DegReaction();
-	DegReaction( int iReac , double dxReac , double kinetic );
+	DegReaction( int i_reac , double kinetic );
 	~DegReaction();
 	
-	virtual int getIPart( int partNum );
-	virtual double getDx( int partNum );
+	virtual int get_i_part( int part_num );
 	
-	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-					   int iCurrCell , IntegrationType mode , double dt );
+	virtual void react( dmat& curr_tissue , dmat& dx_dt ,
+					    std::vector< std::vector<int>* >& neighbors,
+					    int i_curr_cell );
 	
-	virtual void updateIndices( int firstIndex , int numInsertions );
+	virtual void update_indices( int first_index , int num_insertion );
 	
 private:
 	
 	/* Where in the ODEManager are the participants located */
-	int iReac;
-	/* Mutation Helper Functions */
-	/* What is the current rate of change of concentrations for the participants
-	 * in this reaction */
-	double dxReac;
+	int _i_reac;
 	
 	/* Kinetic constants for the reaction. */
-	double kinetic;
+	double _kinetic;
 	
 };
 

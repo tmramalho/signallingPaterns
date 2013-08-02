@@ -24,29 +24,25 @@ class PromReaction : public Reaction {
 	
 public:
 	PromReaction();
-	PromReaction( int iGene , int iProt , double dxProt , double kinetic );
+	PromReaction( int i_gene , int i_prot , double kinetic );
 	~PromReaction();
 	
-	virtual int getIPart( int partNum );
-	virtual double getDx( int partNum );
+	virtual int get_i_part( int part_num );
 	
-	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-					   int iCurrCell , IntegrationType mode , double dt );
+	virtual void react( dmat& currTissue , dmat& dx_dt ,
+					    std::vector< std::vector<int>* >& neighbors,
+					    int i_curr_cell );
 	
-	virtual void updateIndices( int firstIndex , int numInsertions );
+	virtual void update_indices( int first_index , int num_insertion );
 	
 private:
 	
 	/* Where in the ODEManager are the participants located */
-	int iGene;
-	int iProt;
-	
-	/* What is the current rate of change of concentrations for the participants
-	 * in this reaction */
-	double dxProt;
+	int _i_gene;
+	int _i_prot;
 	
 	/* Kinetic constants for the reaction. */
-	double kinetic;
+	double _kinetic;
 
 };
 

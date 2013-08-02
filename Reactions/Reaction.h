@@ -27,6 +27,7 @@
 # include <vector>
 
 # include "../old/numeric/dvec.h"
+# include "../old/numeric/dmat.h"
 # include "ReactionType.h"
 # include "../IntegrationType.h"
 
@@ -39,14 +40,14 @@ public:
 	Reaction();
 	~Reaction();
 	
-	int getNumPart();
-	virtual int getIPart(int partNum) = 0;
-	virtual double getDx(int partNum) = 0;
+	int get_num_part();
+	virtual int get_i_part(int part_num) = 0;
 	
-	virtual void react( std::vector< dvec* >& currTissue , std::vector< std::vector<int>* >& neighbors,
-					   int iCurrCell , IntegrationType mode , double dt ) = 0;
+	virtual void react( dmat& curr_tissue , dmat& dx_dt , 
+					    std::vector< std::vector<int>* >& neighbors ,
+					    int i_curr_cell ) = 0;
 	
-	virtual void updateIndices( int firstIndex , int numInsertions) = 0;
+	virtual void update_indices( int first_index , int num_insertion) = 0;
 	
 protected:
 	
@@ -56,9 +57,9 @@ protected:
 	static const int NEXIST = -1;
 	
 	/* Reaction will calculate rates differently depending on its type */
-	ReactionType type;
+	ReactionType _type;
 	
-	int numPart;
+	int _num_part;
 	
 private:
 	

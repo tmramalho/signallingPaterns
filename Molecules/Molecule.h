@@ -31,19 +31,20 @@ public:
 	Molecule();
 	~Molecule();
 	
-	unsigned int getISelf();
-	double getInitConc();
-	void addReaction(Reaction* const reacRef);
+	unsigned int get_i_self();
+	double get_init_conc();
+	void add_reaction(Reaction* reac_ref);
+	Reaction* get_reaction( int i_reac );
 	
-	virtual void updateIndices( int firstIndex , int numInsertion) = 0;
+	virtual void update_indices( int first_index , int num_insertion) = 0;
 	
 protected:
 	
 	static const int NEXIST = -1;
 	
-	unsigned int iSelf;
+	unsigned int _i_self;
 	
-	double initConc;
+	double _init_conc;
 	
 	/* The GenomeReactions are owned by the Genome class. The Molecule
 	 * class references them only so the molecule can know which
@@ -53,7 +54,7 @@ protected:
 	 * The molecule destructor should NOT delete the GenomeReactions.
 	 *
 	 */
-	vector<Reaction*> reactions;
+	vector<Reaction*> _reactions;
 	
 };
 
