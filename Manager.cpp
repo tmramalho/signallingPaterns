@@ -402,6 +402,80 @@ void Manager::add_LatPromReac( int i_loc_prot_in_prots ,
 	
 }
 
+/* Public Method: add_HillPromReac(i_promoter,i_promoted,
+ *								  kinetic,K,cooperativity)
+ * -------------------------------------------------------------------------- 
+ * Makes the protein in position i_promoted_in_prots in the protein vector
+ * get promoted by the presence of the protein i_promoter_in_prots in
+ * the same cell, with the provided kinetic constants.
+ * 
+ * CAUTION: It is assumed that i_promoter_in_prots and 
+ * i_promoted_in_prots is the index of a protein. No check is performed 
+ * by the function to guarantee this.
+ *
+ * The tasks that need to be performed are:
+ *
+ *		1. A new reaction is added describing the hill promotion reaction.
+ *		2. This reaction is added to the internal data of the participating
+ *		proteins.
+ */
+
+void Manager::add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prots ,
+							   double kinetic , double K , double cooperativity ) {
+	
+	int i_promoter = _genes.size() + i_promoter_in_prots;
+	int i_promoted = _genes.size() + i_promoted_in_prots;
+	
+	/* Step 1 */
+	_reactions.push_back(new HillPromReaction(i_promoter,i_promoted,
+											  kinetic,K,cooperativity));
+	
+	/* Step 2 */
+	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-1); // add new HillPromReaction
+	_proteins.at(i_promoter_in_prots)->add_reaction(curr_reac_ref); // to promoter protein
+	if ( i_promoter_in_prots != i_promoted_in_prots ) {
+		_proteins.at(i_promoted_in_prots)->add_reaction(curr_reac_ref): // to promoted protein
+	}
+	
+}
+
+/* Public Method: add_HillPromReac(i_promoter,i_promoted,
+ *								  kinetic,K,cooperativity)
+ * -------------------------------------------------------------------------- 
+ * Makes the protein in position i_repressed_in_prots in the protein vector
+ * get promoted by the presence of the protein i_repressor_in_prots in
+ * the same cell, with the provided kinetic constants.
+ * 
+ * CAUTION: It is assumed that i_repressor_in_prots and 
+ * i_repressed_in_prots is the index of a protein. No check is performed 
+ * by the function to guarantee this.
+ *
+ * The tasks that need to be performed are:
+ *
+ *		1. A new reaction is added describing the hill repression reaction.
+ *		2. This reaction is added to the internal data of the participating
+ *		proteins.
+ */
+
+void Manager::add_HillPromReac( int i_repressor_in_prots , int i_repressed_in_prots ,
+							   double kinetic , double K , double cooperativity ) {
+	
+	int i_repressor = _genes.size() + i_repressor_in_prots;
+	int i_repressed = _genes.size() + i_repressed_in_prots;
+	
+	/* Step 1 */
+	_reactions.push_back(new HillPromReaction(i_repressor,i_repressed,
+											  kinetic,K,cooperativity));
+	
+	/* Step 2 */
+	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-1); // add new HillPromReaction
+	_proteins.at(i_repressor_in_prots)->add_reaction(curr_reac_ref); // to promoter protein
+	if ( i_repressor_in_prots != i_repressed_in_prots ) {
+		_proteins.at(i_repressed_in_prots)->add_reaction(curr_reac_ref): // to promoted protein
+	}
+	
+}
+
 /* Public Method: initialize()
  * -------------------------------------------------------------------------- 
  * Initialize by making the dmat the appropriate size according to _num_mol,
@@ -585,7 +659,7 @@ void Manager::rk4_det_ti( int num_step ) {
 										  k4,.166666666667);
 		/* ----------------------------------------- */
 		_time += _dt;
-		print_state();
+		//print_state();
 	}
 }
 

@@ -17,6 +17,8 @@ enum ReactionType { PROMOTION ,
 					DEGRADATION , 
 					COMBINATION , 
 					LATERAL_PROMOTION , 
-					PROMOTER_BINDING };
+					PROMOTER_BINDING ,
+					HILL_PROMOTION ,
+					HILL_DEGREDATION };
 
 #endif

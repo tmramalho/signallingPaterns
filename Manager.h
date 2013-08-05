@@ -72,6 +72,15 @@ public:
 	//void addPartialCatDegReac();
 	void add_LatPromReac( int i_loc_prot_in_prots , int i_neighbor_prot_in_prots ,
 						 double kinetic , double K );
+	void add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prots ,
+						  double kinetic , double K , double cooperativity );
+	void add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_prots ,
+						 double kinetic , double K , double cooperativity );
+	
+	/* Removing Reactions */
+	//void remove_reaction( int i_reac );
+	
+	/* Mutation */
 	
 	/* Functions for running the ODE */
 	void initialize();
