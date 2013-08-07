@@ -16,6 +16,12 @@ Gene::Gene( int i_self, int i_product , int i_bound_promoter , int i_root , doub
 	_init_conc = init_conc;
 }
 
+Gene::Gene(Gene* newOne) {
+	_i_product = newOne->_i_product;
+	_i_bound_promoter = newOne->_i_bound_promoter;
+	_i_root = newOne->_i_root;
+}
+
 /* Destructor: ~Gene()
  * -------------------------------------------------------------------------- 
  * No heap allocated memory owned by the gene class.
@@ -52,7 +58,7 @@ int Gene::get_i_bound_promoter() {
 int Gene::get_i_root() {
 	return _i_root;
 }
-
+ 
 /* Private Method: updateIndices(first_index,num_insertion)
  * -------------------------------------------------------------------------- 
  * Updates the index of iSelf, iProduct, iBoundPromoter, iRoot, given an 

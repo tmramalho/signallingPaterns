@@ -28,17 +28,19 @@ using namespace std;
 class Molecule {
 	
 public:
-	Molecule();
 	~Molecule();
 	
 	unsigned int get_i_self();
 	double get_init_conc();
 	void add_reaction(Reaction* reac_ref);
 	Reaction* get_reaction( int i_reac );
-	
+	int get_num_reac();
+
 	virtual void update_indices( int first_index , int num_insertion) = 0;
 	
 protected:
+	
+	Molecule();
 	
 	static const int NEXIST = -1;
 	

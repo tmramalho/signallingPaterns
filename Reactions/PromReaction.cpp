@@ -28,6 +28,17 @@ PromReaction::PromReaction( int i_gene , int i_prot , double kinetic ) {
 	
 }
 
+PromReaction::PromReaction(PromReaction* newOne) {
+	
+	_type = PROMOTION;
+	
+	_num_part = 1;
+	
+	_i_gene = newOne->_i_gene;
+	_i_prot = newOne->_i_prot;
+	_kinetic = newOne->_kinetic;
+}
+
 PromReaction::~PromReaction() {}
 
 int PromReaction::get_i_part( int part_num ) {
@@ -69,3 +80,25 @@ void PromReaction::update_indices( int first_index , int num_insertion ) {
 	if (_i_gene >= first_index) _i_gene += num_insertion;
 	if (_i_prot >= first_index) _i_prot += num_insertion;
 }
+
+void PromReaction::mutate ( boost::random::mt19937& generator ) {
+	
+	boost::random::uniform_real_distribution<> mutation_factor(0.0,2.0);
+	
+	double mut_factor = mutation_factor(generator);
+	
+	_kinetic *= mut_factor;
+	
+}
+
+
+void PromReaction::print_info ( std::string line_start ) {
+	
+	std::cout << line_start << "ReactionType: Promotion Reaction" << std::endl;
+	//std::cout << line_start << "_num_part: " << _num_part << std::endl;
+	std::cout << line_start << "Index of Gene: " << _i_gene << std::endl;
+	std::cout << line_start << "Index of Produced Protein: " << _i_prot << std::endl;
+	std::cout << line_start << "Rate of Production: " << _kinetic << std::endl;
+	
+}
+

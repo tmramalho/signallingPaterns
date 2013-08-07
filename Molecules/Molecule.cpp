@@ -49,14 +49,15 @@ double Molecule::get_init_conc() {
  */
 void Molecule::add_reaction(Reaction* reac_ref){
 	_reactions.push_back(reac_ref);
-	int i = 3;
 }
 
 Reaction* Molecule::get_reaction( int i_reac ) {
 	return _reactions.at( i_reac );
 }
 
-
+int Molecule::get_num_reac() {
+	return _reactions.size();
+}
 
 
 

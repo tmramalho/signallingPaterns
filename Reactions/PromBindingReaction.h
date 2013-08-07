@@ -29,6 +29,7 @@ public:
 	PromBindingReaction();
 	PromBindingReaction( int i_root_gene , int i_promoted_gene , int i_bound_protein ,
 						double forward_kinetic , double backward_kinetic );
+	PromBindingReaction(PromBindingReaction* newOne);
 	~PromBindingReaction();
 	
 	virtual int get_i_part( int part_num );
@@ -38,6 +39,10 @@ public:
 					    int i_curr_cell );
 	
 	virtual void update_indices( int first_index , int num_insertion );
+	
+	virtual void mutate ( boost::random::mt19937& generator );
+
+	virtual void print_info ( std::string line_start );
 	
 private:
 	

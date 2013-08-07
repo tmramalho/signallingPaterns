@@ -25,6 +25,7 @@ class PromReaction : public Reaction {
 public:
 	PromReaction();
 	PromReaction( int i_gene , int i_prot , double kinetic );
+	PromReaction(PromReaction* newOne);
 	~PromReaction();
 	
 	virtual int get_i_part( int part_num );
@@ -34,6 +35,10 @@ public:
 					    int i_curr_cell );
 	
 	virtual void update_indices( int first_index , int num_insertion );
+	
+	virtual void mutate ( boost::random::mt19937& generator );
+	
+	virtual void print_info ( std::string line_start );
 	
 private:
 	

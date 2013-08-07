@@ -27,12 +27,13 @@ class Gene : public Molecule {
 
 public:
 	Gene( int i_self, int i_product , int i_bound_promoter , int i_root , double init_conc );
+	Gene(Gene* newOne);
 	~Gene();
 	
 	int get_i_product();
 	int get_i_bound_promoter();
 	int get_i_root();
-	
+
 	virtual void update_indices( int first_index , int num_insertions );
 	
 protected:

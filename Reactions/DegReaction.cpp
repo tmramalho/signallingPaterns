@@ -27,6 +27,17 @@ DegReaction::DegReaction( int i_reac , double kinetic ) {
 	
 }
 
+DegReaction::DegReaction(DegReaction* newOne) {
+	
+	_type = DEGRADATION;
+	
+	_num_part = 1;
+	
+	_i_reac = newOne->_i_reac;
+	_kinetic = newOne->_kinetic;
+	
+}
+
 DegReaction::~DegReaction() {}
 
 int DegReaction::get_i_part( int part_num ) {
@@ -69,4 +80,22 @@ void DegReaction::update_indices( int first_index , int num_insertion ) {
 	if (_i_reac >= first_index) _i_reac += num_insertion;
 }
 
+void DegReaction::mutate ( boost::random::mt19937& generator ) {
+	
+	boost::random::uniform_real_distribution<> mutation_factor(0.0,2.0);
+	
+	double mut_factor = mutation_factor(generator);
+	
+	_kinetic *= mut_factor;
+	
+}
+
+void DegReaction::print_info ( std::string line_start ) {
+	
+	std::cout << line_start << "ReactionType: Degredation Reaction" << std::endl;
+	//std::cout << line_start << "_num_part: " << _num_part << std::endl;
+	std::cout << line_start << "Index of Degrading Protein: " << _i_reac << std::endl;
+	std::cout << line_start << "Degredation Rate: " << _kinetic << std::endl;
+	
+}
 

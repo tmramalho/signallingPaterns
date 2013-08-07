@@ -31,6 +31,19 @@ LatPromReaction::LatPromReaction( int i_local_prot , int i_neighbor_prot ,
 	
 }
 
+LatPromReaction::LatPromReaction(LatPromReaction* newOne) {
+	
+	_type = LATERAL_PROMOTION;
+	
+	_num_part = 1;
+	
+	_i_local_prot = newOne->_i_local_prot;
+	_i_neighbor_prot = newOne->_i_neighbor_prot;
+	_kinetic = newOne->_kinetic;
+	_K = newOne->_K;
+	
+}
+
 LatPromReaction::~LatPromReaction() {}
 
 int LatPromReaction::get_i_part( int part_num ) {
@@ -80,5 +93,36 @@ void LatPromReaction::react( dmat& curr_tissue , dmat& dx_dt ,
 void LatPromReaction::update_indices( int first_index , int num_insertion ) {
 	if (_i_local_prot >= first_index) _i_local_prot += num_insertion;
 	if (_i_neighbor_prot >= first_index) _i_neighbor_prot += num_insertion;
+}
+
+void LatPromReaction::mutate ( boost::random::mt19937& generator ) {
+	
+	boost::random::uniform_int_distribution<> which_kinetic(0,1);
+	boost::random::uniform_real_distribution<> mutation_factor(0.0,2.0);
+	
+	int kinetic_num = which_kinetic(generator);
+	double mut_factor = mutation_factor(generator);
+	
+	switch ( kinetic_num ) {
+		case 0:
+			_kinetic *= mut_factor;
+			break;
+		case 1:
+			_K *= mut_factor;
+			break;
+		default:
+			break;
+	}
+}
+
+void LatPromReaction::print_info ( std::string line_start ) {
+	
+	std::cout << line_start << "ReactionType: Lateral Promotion Reaction" << std::endl;
+	//std::cout << line_start << "_num_part: " << _num_part << std::endl;
+	std::cout << line_start << "Index of Protein Promoted by Neighbors: " << _i_local_prot << std::endl;
+	std::cout << line_start << "Index of Protein Promoting its Neighbors: " << _i_neighbor_prot << std::endl;
+	std::cout << line_start << "Kinetic Rate of Reaction: " << _kinetic << std::endl;
+	std::cout << line_start << "K: " << _K << std::endl;
+	
 }
 

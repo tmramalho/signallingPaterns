@@ -13,6 +13,11 @@
 # include <ctime>
 # include <cstring>
 
+/* Boost Random Libraries */
+# include <boost/random/uniform_int_distribution.hpp>
+# include <boost/random/uniform_real_distribution.hpp>
+# include <boost/random/mersenne_twister.hpp>
+
 # include "old/numeric/dvec.h"
 # include "old/numeric/dmat.h"
 # include "Reactions/Reaction.h"
@@ -22,7 +27,10 @@
 # include "Reactions/PromReaction.h"
 # include "Reactions/LatPromReaction.h"
 # include "Reactions/PromBindingReaction.h"
+# include "Reactions/HillPromReaction.h"
+# include "Reactions/HillRepReaction.h"
 # include "IntegrationType.h"
+# include "ReactionType.h"
 # include "Molecules/Molecule.h"
 # include "Molecules/Protein.h"
 # include "Molecules/Gene.h"
@@ -52,6 +60,7 @@ class Manager {
 public:
 	
 	Manager();
+	Manager( string method );
 	~Manager();
 	
 	void set_mode( IntegrationType mode );
@@ -60,27 +69,8 @@ public:
 	void set_dt( double dt );
 	double get_dt();
 	
-	/* Adding Reactions */
-	void add_gene( double prod_rate , double deg_rate );
-	void add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
-							 double forward_kinetic , double backward_kinetic , 
-							 double new_prod_rate );
-	//void addPhosphReac();
-	//void addPartialDegReac();
-	void add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_prots , 
-						  double forward_kinetic , double backward_kinetic );
-	//void addPartialCatDegReac();
-	void add_LatPromReac( int i_loc_prot_in_prots , int i_neighbor_prot_in_prots ,
-						 double kinetic , double K );
-	void add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prots ,
-						  double kinetic , double K , double cooperativity );
-	void add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_prots ,
-						 double kinetic , double K , double cooperativity );
-	
-	/* Removing Reactions */
-	//void remove_reaction( int i_reac );
-	
 	/* Mutation */
+	void mutate( boost::random::mt19937& generator );
 	
 	/* Functions for running the ODE */
 	void initialize();
@@ -88,7 +78,7 @@ public:
 	
 	/* Display Functions */
 	void print_state();
-	//void printGenome();
+	void print_genome();
 	
 private:
 	
@@ -159,6 +149,32 @@ private:
 	/* Helpers for mutating genome */
 	void resize_dmats();
 	void update_indices( int first_index , int num_insertion );
+	
+	/* Adding Reactions Helpers */
+	void add_gene( double prod_rate , double deg_rate );
+	void add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
+							 double forward_kinetic , double backward_kinetic , 
+							 double new_prod_rate );
+	//void addPhosphReac();
+	//void addPartialDegReac();
+	void add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_prots , 
+						  double forward_kinetic , double backward_kinetic );
+	//void addPartialCatDegReac();
+	void add_LatPromReac( int i_loc_prot_in_prots , int i_neighbor_prot_in_prots ,
+						 double kinetic , double K );
+	void add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prots ,
+						  double kinetic , double K , double cooperativity );
+	void add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_prots ,
+						 double kinetic , double K , double cooperativity );
+	
+	/* Removing Reactions */
+	//void remove_reaction( int i_reac );
+	
+	/* Mutation Types: Helper Functions */
+	void degredation_mutation ( boost::random::mt19937& generator );
+	void kinetic_mutation ( boost::random::mt19937& generator );
+	void prom_binding_mutation ( boost::random::mt19937& generator );
+	void post_transcript_mutation ( boost::random::mt19937& generator );
 	
 	/* Integration Types Methods */
 	void rk4_det_ti ( int num_step );

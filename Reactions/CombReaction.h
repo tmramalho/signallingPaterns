@@ -31,6 +31,7 @@ public:
 	CombReaction();
 	CombReaction( int i_reac_zero , int i_reac_one , int i_product ,
 				 double forward_kinetic , double backward_kinetic );
+	CombReaction(CombReaction* newOne);
 	~CombReaction();
 
 	virtual int get_i_part( int part_num );
@@ -40,6 +41,10 @@ public:
 					   int i_curr_cell );
 	
 	virtual void update_indices( int first_index , int num_insertions);
+	
+	virtual void mutate( boost::random::mt19937& generator );
+	
+	virtual void print_info ( std::string line_start );
 	
 private:
 	
@@ -51,6 +56,9 @@ private:
 	/* Kinetic constants for the reaction. */
 	double _forward_kinetic;
 	double _backward_kinetic;
+	
+	/* Copy Constructor Helper */
+	void copy(CombReaction* newOne);
 };
 
 # endif

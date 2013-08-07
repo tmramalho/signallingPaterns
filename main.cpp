@@ -39,11 +39,7 @@ using namespace std;
 
 int main() 
 {
-	Manager manager;
-	
-	manager.integrate(10000);
-	
-	int k = 0;
+	Manager manager("mutation");
 	
 	return 0;
 	

@@ -31,6 +31,7 @@ public:
 	LatPromReaction( int i_local_prot , int i_neighbor_prot ,
 					 double kinetic ,
 					 double K );
+	LatPromReaction(LatPromReaction* newOne);
 	~LatPromReaction();
 	
 	virtual int get_i_part( int part_num );
@@ -40,6 +41,10 @@ public:
 					    int i_curr_cell );
 	
 	virtual void update_indices( int first_index , int num_insertion );
+	
+	virtual void mutate ( boost::random::mt19937& generator );
+	
+	virtual void print_info ( std::string line_start );
 	
 private:
 	

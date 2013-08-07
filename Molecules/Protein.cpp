@@ -20,6 +20,11 @@ Protein::Protein( int i_self , int i_root_zero , int i_root_one , double init_co
 	/* reactions will automatically initiate to empty vector */
 }
 
+Protein::Protein(Protein* newOne) {
+	_i_root_zero = newOne->_i_root_zero;
+	_i_root_one = newOne->_i_root_one;
+}
+
 /* Destructor: ~Protein()
  * -------------------------------------------------------------------------- 
  * No heap allocated memory owned by the protein class.
