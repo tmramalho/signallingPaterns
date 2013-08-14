@@ -2,53 +2,320 @@ Simulating Genetics Documentation
 
 
 
-OVERVIEW
+MANAGER CLASS
 ------------------------------------------------------------------------
-This implementation relies on two primary classes: the ODEManager and
-the Genome class. The other classes serve these two. Therefore, an 
-overview of these classes demonstrates the general structure of the
-program, the rest which can be gathered by reading in-line comments.
+Manager objects should be thought of as instances of as instances of
+genetic networks, with the capability of integrating those networks
+using various numerical methods as well as mutating themselves.
 
-The ODEManager:
-Each object contains only that information that is necessary for 
-efficient integration of the ODE for a particular gene network. 
-Therefore, it contains for each cell a dvec of concentrations for all 
-the molecules in the gene network, whether those be genes, proteins, 
-gene-protein complexes, or protein complexes. It has no knowledge of 
-which locations in the dvec correspond to which types of substances, and
-especially not information like which proteins combine to form which 
-complexes. 
+*** Data Storage ***
+The following are the key data structures contained by the Manager 
+class, each which we explain in turn:
 
-It has access to objects of the ODEReaction class that describe the 
-interactions between different molecules, which here are simply 
-different locations in the dvec. The ODEReaction handles the computation
-of instantaneous rates of change of each concentration. The ODEManager 
-simply reads these rates from the ODEReaction objects. By assigned the 
-ODEManager a variable describing its type, we allow it to perform 
-different calculations based on this variable. Thus, by modularizing the
-calculation in the ODEReaction class, we can add whatever types of 
-reactions we want without changing the implementation of the ODEManager.
-We can implement anything from Hill's functions to the simple reactions 
-of Hakim from which they can be derived.
+	_curr_tissue
+	Conceptually, a matrix of doubles, each representing the 
+	concentration of a protein or gene in a particular cell. It is
+	a dmat object, where dmat is an extension of the dvec class that
+	uses 2-dimensional indexing.
+	Each row represents a cell in our tissue. Each column a
+	particular gene or protein. Thus, to each gene or protein we
+	assign an index, which refers to the column in the dmat it is
+	stored in. This will be how we refer to genes or proteins in
+	other parts of the code. The Manager class is responsible for 
+	keeping track of these indices and keeping them consistent.
+	The following convention is used: the lowest indices refer to
+	genes, the highest to proteins. Thus, if there are ng genes and 	np proteins, indices 0 through ng-1 are for genes, ng through 
+	ng + np - 1 are for proteins.
 
-The Genome:
-The Genome mirrors the ODEManager but contains more information about 
-the structure of the gene network, which is useful to us in figuring out
-or describing what the gene network looks like, and is useful for 
-managing mutations. For example, Hakim's mutation which adding a 
-reaction of type vii) requires that we are able to identify that a given
-substance is a complex.
+	_reactions
+	A vector containing pointers to Reaction objects. Reaction
+	objects contained detailed information necessary for 
+	characterizing interactions in our network. The _reactions
+	contains all of the reactions participating in our network.
+	See below for detailed information about the Reaction class.
 
-A genome object contains a list of genes and a list of proteins. Here, 
-these are objects of the class proteins and genes, so that they can 
-return to us more detailed information about themselves. Genes can be 
-both lone genes and genes bound to a promoter. The gene object will know
-whether the gene is lone, and if it is bound to a promoter, which base 
-gene and promoter it is a complex of. Proteins can be both lone proteins
-or protein complexes, and each protein object contains the information 
-relevant to this as well.
+	_genes
+	A vector containing pointers to Gene objects. Gene objects 
+	contain the detailed information relevant to each gene. In 
+	particular, its index (ie. its column in _curr_tissue) and the
+	index of the protein it promotes. We also consider gene-protein
+	complexes to be genes, and thus, a Gene will also contain 
+	the indices of both the root gene and binding protein making up
+	this complex. The integer NEXIST is used as the index when the
+	gene is not a protein, and thus these root genes and proteins do
+	not exist.
+	Each Gene objects also contains a vector of pointers to Reaction
+	objects. These Reaction objects are the reactions in which the
+	gene takes part (ie. reactions it affects, is affected by, or 
+	both).
+	The order of the genes in the _genes vector is the same as their
+	order in the _curr_tissue dmat.
 
+	_proteins
+	A vector containing pointers to Protein objects. Protein
+	objects, like Gene objects, contain the relevant information
+	relevant to each protein. In particular, its index (ie. its 
+	column in _curr_tissue). We also consider protein-protein 
+	complexes to be proteins. Thus, it also stores the indices of 
+	these two root proteins (which could be the same for a dimer). 
+	NEXIST is used in the same way it is used for Genes (ie. as 
+	the stored index when the gene is not a complex, so has no
+	root proteins from which it is derived.
+	Like Gene objects, Protein objects contain a vector of pointers
+	to Reaction objects, referring to the reactions in which the 
+	protein takes part.
+	The order of the proteins in the _proteins vector is the same
+	as their order in the _curr_tissue dmat. Because the indices 
+	of proteins in the _curr_tissue mat are after the indices of
+	_genes, this means that if a protein has index i_prot in the
+	_curr_tissue dmat, in the _proteins vector it will have index
+	i_prot_in_prots = i_prot - num_gene. (The index the protein
+	stores is i_prot, NOT i_prot_in_prots).
 
+*** Construction ***
+We allow there to be several different ways to construct a manager object.
+The constructor takes a ConstructionType variable that describes this
+method, and the constructor than calls the corresponding helper method
+for that construction method.
+
+Right now the following methods are available
+	1. HAKIM_DELTA_NOTCH: Manager initialized with a genome that uses
+	only Hakim type interactions within the cell and a Lateral
+	Hill Promotion reaction to recreate the type of lateral inhibition
+	in Delta-Notch interactions. Limited Success so far.
+	2. COLLIER_DELTA_NOTCH: Manager initialized with a genome that 
+	uses Hill reactions directly the create the Delta-Notch model
+	examined in Collier et al. 
+	3. MUTATION: Manager initialized by first adding one gene and a
+	protein, and then calling mutate 5 times.
+	4. ONE_PROTEIN: Manager initialized with one gene and one protein,
+	with the promotion and degradation rates both equal to 1.0. 
+
+The aspects of construction that are the same for all construction methods
+is initializing _sc_ref to point to the SettingsCont, and setting the
+number of cells. These parts are handled outside of the helper functions
+called for the various methods. 
+
+REACTION CLASS
+------------------------------------------------------------------------
+Reaction is an abstract class. Each Reaction subclass contains all the
+information relevant to running a particular reaction.
+All reactions can be characterized by three types of information:
+	1. The substances that participate in a reaction. These are
+	stored as the indices of the relevant substances in the 
+	_curr_tissue vector, as stored in the Manager class.
+	2. A set of kinetic rates that characterize reaction rates. The
+	number of and role of these kinetic rates will depend on the 
+	type of reaction. Thus, these are doubles specified by each 
+	Reaction subclass.
+	3. How to take the concentrations of the relevant substances,
+	and calculate the resulting rates of change in their 
+	concentrations due to the reaction, according the the reaction
+	type and kinetic constants. This is contained in the particular
+	instantiation of the pure abstract method react of the abstract
+	class. We now explain this method in more detail.
+
+*** The react Method ***
+The react method accepts a copy of the _curr_tissue dmat, passed by
+reference, a mat called dx_dt also passed by reference, and the index
+of the cell in our _curr_tissue (ie. the row) in which we are to 
+apply this reaction. 
+
+The dx_dt mat should be of the same dimensions as _curr_tissue. The
+react method will look at the concentrations of the relevant substances
+in the _curr_tissue vector, according the the index of the cell passed
+to it and the indices of the relevant substances which it stores, and 
+then, using the kinetic constants it stores, calculate the rate of
+change of all substances affected by this reaction.
+
+It will then add to the dx_dt vector these rates of change, which,
+because it was passed by reference, will be available after the function
+has returned. 
+
+There is also a stochastic version of the react method, which will 
+randomly modify the rate of change it adds to the dx_dt vector, but in
+such a way to maintain things like conservation of mass. This react
+method is distinguished by its also receiving the arguments for a random
+number generator and distribution passed by reference, as well as a 
+noise parameter q.
+
+See documentation on integration for more on the functioning of the 
+react method.
+
+INTEGRATION
+------------------------------------------------------------------------
+To perform one time step of our integration, we need to calculate a 
+dx_dt dmat, representing the rates of change of all substances of all
+cells of our _curr_tissue dmat, due to all reactions in our genome. 
+Because of the variety of reactions we would like to accommodate, we may
+not be able to reduce the calculation of the dx_dt dmat to some easily
+parameterized calculation, like matrix multiplication.
+
+What we do expect is that the effects of different reactions should 
+combine linearly. For example, the rate of change of a protein's
+concentration could be affected by a promoting reaction (the protein's
+concentration increases due to the presence of a gene), a degradation
+reaction (a proteins concentration decreases due to its own presence),
+and a Hill-type interaction with another protein. To calculate the total
+rate of change of the protein's concentration, we calculate the rates 
+of change due to all these reactions and compute their sum.
+
+After doing this, we multiply dx_dt by dt and add to the _curr_tissue
+vector to update _curr_tissue at the next time step.
+
+To calculate the sums of reaction rates, we at each time step begin by
+setting the dx_dt dmat to zero. Then, pass this vector one at a time to
+the react methods of the Reaction object. As described above, each 
+react method will simply add the reaction rates it calculates to the 
+dx_dt vector, without regard for what is already stored in the dx_dt
+vector. Once we have done this for each reaction and each cell, we
+will have the result we want.
+
+*** Stochastic Integration ***
+The only additional issue potentially introduced by stochastic 
+integration is that for a particular time step, the deterministic rates
+of change will be multiplied by dt in calculating the next state, and
+the stochastic changes by sqrt(dt). Thus, if we crudely added randomness
+to the dx_dt vector and multiplied by dt, we would not appropriately 
+represent the stochasticity.
+
+To deal with this but maintain the implementation in which each reaction
+manages calculating rates of change separately, we implement a react
+method which accepts a random number generator, distribution, and 
+noise parameter q. It adds to the dx_dt dmat it receives by reference
+the deterministic rate of change plus the stochastic rate of change
+divided by sqrt(dt). Thus, the dx_dt vector, in this case, holds
+
+	det_rate + stc_rate/sqrt(dt)
+
+When we finish calculating the dx_dt vector, we can, as before, simply
+update _curr_state by adding dx_dt * dt which is
+
+	(det_rate + stc_rate/sqrt(dt)) * dt
+		
+		=
+
+	det_rate * dt + stc_rate * sqrt(dt) 
+
+as desired. We should only note that now, the meaning of the contents
+of the dx_dt vector, at least mathematically, is not that clear. It 
+is simply the number that when multiplied by dt will give us the
+appropriate updates.
+
+The only issue remaining is how each reaction object can know the dt
+for the current integration, which is NOT passed to it. It turns out 
+that this information is held in by the SettingsCont, which holds other
+global settings for any given run of our computation and optimization. 
+Each reaction objects holds a pointer to this SettingCont object, and
+thus has access to this information, also accessible to the Manager 
+class when it must calculate dx_dt * dt. Externalizing this dt
+in the SettingsCont maintains its consistency in all parts of the 
+calculation.
+
+*** initialize() ***
+See the description of this method under the MUTATION section for a 
+description of what it does regarding integration.
+
+TISSUE GEOMETRY
+------------------------------------------------------------------------
+Although the data for a particular cell is stored simply as a row of 
+the _curr_tissue, we may not want the geometry of our tissue to be
+necessarily a 1-dimensional line of cells. Our program should also be
+able to accommodate square lattices, or even triangular, hexagonal, or 
+more complicated geometries.
+
+The geometry of the tissue becomes relevant for the react methods of
+intercellular reactions. An intercellular reaction is one in which
+when asked to calculate the rates of change of concentrations in a 
+given cell c due to the particular reaction, the reaction must look
+at the concentrations of certain substances in c's neighbors. 
+
+We need some way for the system to know which are cell c's neighbors. 
+For a linear geometry this is easy (cell c+1 and c-1, with edge
+exceptions), but for other geometries it may be more complicated. To
+accommodate this, we simply store in the SettingsCont that holds a
+vector which holds, for each cell, the index in _curr_tissue of all of
+the cells neighbors. Thus, this is a vector<vector<int>*>. The react 
+methods can access this vector when it needs to know the neighbors of 
+the current cell c.
+
+For example, if we have a 2x2 tissue, we might index the cells from left to right, top to bottom, as
+
+		1	2
+
+		3	4
+
+Then, our vector of neighbors would look like this:
+
+		< [2,3] , [1,4] , [1,4] , [2,3] >
+
+Note listing the neighbors of each cell contains all the information
+related to the tissue geometry that is relevant to our network. Of
+course, a more involved data-structure would need to be designed if we
+also wanted to include direction or different levels of interactions 
+between cells in the effect of certain reactions.
+
+MUTATION
+------------------------------------------------------------------------
+
+*** Adding Reactions ***
+Mutations rely on a set of private methods in the Manager class that 
+enable us to add a reaction to the network.
+
+Each type of reaction has a corresponding add method, which accepts the
+indices of the genes and proteins in the reaction and the kinetic rates
+of the reaction (the number of these will depend on the reaction type).
+It then adds this reaction to the genome. Sometimes a reaction will also
+add a substance to the genome: for example, the dimerization of two
+proteins will also require adding the dimer to the list of proteins of
+the reaction.
+
+Thus, the following maintenance operations must be performed.
+	1. If we add any substances to our genome through insertion into
+	the _genes or _proteins vectors, we may change the indices of
+	already existing substances. We must go through all genes and
+	proteins and change the relevant indices they store, ie. their
+	own index and the index of things like their root proteins they
+	derive from or, for genes, the proteins they promote. We must
+	go through all existing reactions and update these indices as	
+	well. These updates are handled by update_indices methods in 
+	the Manager, Gene, Protein, and Reaction classes.
+	2. We must add the new reaction to the _reactions vectors of all
+	the genes and proteins participating in the reaction.
+
+*** mutate() ***
+Mutations are divided into various types. Each type performs a mutation
+in a different way, but in general, will pick randomly from the 
+different types of reaction additions and the different potential 
+participants in that reaction, and then call the reaction addition 
+method for that reaction and those participants.
+
+The mutate() method acts by picking at random a mutation type, and then
+calling the private method for that mutation type.
+
+Randomness comes in in first picking the mutation type, and second, 
+within that mutation type picking the reaction type and participants
+according to that reaction.
+
+The only part of the process accessible publicly is the mutate method, 
+though we could consider adding easy customizability features by
+having the different mutation methods call on parameters held in the
+SettingsCont describing the probabilities of various types of mutations,
+and other similar things we might wish to control.
+
+*** initialize() ***
+The initialize method is called before integration to make sure things
+are set up for integration. The most important thing it does is 
+resize the _curr_tissue dmat. Indeed, if some substances have been added
+due to a mutation procedure, in order to integrate, we need to add  
+columns to our dmat or our integration will fail.
+
+It also sets the initial concentrations of the substances in these 
+dmats. Each protein and gene object holds information about what its 
+initial concentration is in integration, thus allowing us to integrate
+within a Manager object multiple times, resetting each time.
+
+Finally, it sets the time = 0 again.
 
 CONVENTIONS
 ------------------------------------------------------------------------
@@ -89,5 +356,40 @@ Variable Names
 REACTION TYPES
 ------------------------------------------------------------------------
 	- COMBINATION: A + B <--> C
-	partNum increases from left to right. Thus, for A it is 0, B it 
+	part_num increases from left to right. Thus, for A it is 0, B it 
 	is 1, C it is 2.
+
+	- DEGREDATION: A --> NOTHING
+	part_num is 0 for A.
+
+	- PROMOTION: a --> A
+	dA/dt = k*[a]
+	part_num is 0 for A. a does not have a part_num because it's
+	concentration is not affected by this reaction.
+
+	- LATERAL PROMOTION: 
+	dA/dt = k * [B_n]^2 / ( K + [B_n]^2 )
+	Here [B_n] is the average concentration of B in neighboring
+	cells.
+	part_num is 0 for A. B does not have a part_num because it's
+	concentration is not affected by this reaction.
+
+	- PROMOTER BINDING: a + B <--> a:B
+	da:B/dt = fk * [a][B] - bk * [a:B]
+	da/dt = bk * [a:B] - fk [a][B]
+	part_num is 0 for a. part_num is 1 for a:B. B does not have a
+	part_num because its concentration is not affected by this
+	reaction.
+	Note, while technically the concentration of B is affected by
+	attaching to a, because there are far fewer a molecules than
+	B molecules, it is affectively unchanged by this binding.
+
+	- HILL PROMOTION: 
+	dB/dt = k * [A]^n / ( K + [A]^n )
+	part_num is 0 for B. A does not have a part_num because its
+	concentration is unaffected by this reaction.
+
+	- HILL REPRESSION
+	dB/dt = k * K / ( K + [A]^n )
+	part_num is 0 for B. A does not have a part_num because its
+	concentration is unaffected by this reaction.
