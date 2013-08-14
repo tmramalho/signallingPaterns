@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "../numeric/dvec.h"
+#include "../../Manager.h"
 
 #define PI 3.14159265
 #define NOISE 0.00155231
@@ -17,7 +18,7 @@ public:
 	FitnessFunction() {}
 	virtual ~FitnessFunction() {}
 	
-	virtual double run(dvec *x)=0;
+	virtual double run(Manager *x)=0;
 };
 
 #endif /*FITNESSFUNCTION_H_*/

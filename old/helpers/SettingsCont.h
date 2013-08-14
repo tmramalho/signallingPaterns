@@ -16,21 +16,30 @@
 #include <cstdio>
 #include <cmath>
 #include <unistd.h>
+#include <vector>
+#include <string>
+
+#include "../../IntegrationType.h"
+#include "../../MutationType.h"
 
 #define SIG(x,b) ((1.0-b)/(1.0+exp(-x))+b)
 
 class SettingsCont {
 
 private:
-	static SettingsCont *scPointer;
+	static SettingsCont *_sc_ref;
 	SettingsCont();
 
 public:
-	int numThreads, dim, na, ng;
-	int verbose;
-	double bound, coop, p, sigma0, poiss0, acc;
+	int _num_threads, _na, _ng;
+	int _verbose;
+	std::vector< std::vector<int>* > _neighbors;
+	void set_neighbors( std::string neighbor_code );
+	IntegrationType _mode;
+	double _dt;
+	double _stochasticity;
 	static SettingsCont *getInstance();
-	void setParameters(int argc, char *argv[]);
+	//void setParameters(int argc, char *argv[]);
 	~SettingsCont();
 };
 

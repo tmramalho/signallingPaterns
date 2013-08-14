@@ -8,14 +8,11 @@
 
 #include "HillPromReaction.h"
 
-HillPromReaction::HillPromReaction() {
-	
-	_type = HILL_PROMOTION;
-	
-	_num_part = 1;
-
-}
-
+/* Constructor: HillPromReaction(i_promoter,i_promoted,
+ *								kinetic,K,cooperativity)
+ * -------------------------------------------------------------------------- 
+ * Constructs HillPromReaction, reading in data passed to it.
+ */
 HillPromReaction::HillPromReaction( int i_promoter , int i_promoted ,
 								   double kinetic , double K , double cooperativity ) {
 	
@@ -31,22 +28,19 @@ HillPromReaction::HillPromReaction( int i_promoter , int i_promoted ,
 	
 }
 
-HillPromReaction::HillPromReaction(HillPromReaction* newOne) {
-	
-	_type = HILL_PROMOTION;
-	
-	_num_part = 1;
-	
-	_i_promoter = newOne->_i_promoter;
-	_i_promoted = newOne->_i_promoted;
-	_kinetic = newOne->_kinetic;
-	_K = newOne->_K;
-	_cooperativity = newOne->_cooperativity;
-	
+Reaction* HillPromReaction::copy() {
+	return new HillPromReaction(_i_promoter,_i_promoted,_kinetic,_K,_cooperativity);
 }
 
-HillPromReaction::~HillPromReaction() {}
-
+/* Public method: get_i_part(part_num)
+ * -------------------------------------------------------------------------- 
+ * Returns the index of the manager of the part_num participant in this
+ * reaction.
+ *
+ *		Participant 0 is the promoted protein.
+ *
+ * Returns NEXIST for part_num != 0.
+ */
 int HillPromReaction::get_i_part( int part_num ) {
 	switch (part_num) {
 		case 0:
@@ -58,9 +52,17 @@ int HillPromReaction::get_i_part( int part_num ) {
 	}
 }
 
-void HillPromReaction::react( dmat& curr_tissue , dmat& dx_dt ,
-							 std::vector< std::vector<int>* >& neighbors ,
-							 int i_curr_cell ) {
+/* Public method: react(curr_tissue,dx_dt,i_curr_cell)
+ * -------------------------------------------------------------------------- 
+ * Adds to dx_dt vector (passed by reference), the deterministic rates of
+ * change due to this PromBindingReaction, occuring in i_curr_cell.
+ *		
+ *		A promotes B
+ *
+ *		(d/dt)[B] = kinetic * ( [A]^n ) / ( K + [A]^n )
+ *
+ */
+void HillPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ) {
 
 	double r = 
 	_kinetic
@@ -71,11 +73,73 @@ void HillPromReaction::react( dmat& curr_tissue , dmat& dx_dt ,
 	dx_dt.at(i_curr_cell,_i_promoted) += r;
 }
 
+/* Public method: react(curr_tissue,dx_dt,i_curr_cell
+ *						dist,generator,q)
+ * -------------------------------------------------------------------------- 
+ * Adds to dx_dt vector (passed by reference), the stochastic rates of
+ * change due to this PromBindingReaction, occuring in i_curr_cell.
+ *		
+ *		A promotes B
+ *
+ *		(d/dt)[B] = kinetic * ( [A]^n ) / ( K + [A]^n )
+ *
+ * Stochastic term is
+ *
+ *		det_flow * random_var * sqrt(q/dt)
+ *
+ * where q measures the magnitued of the noise.
+ *
+ * We divde by sqrt(dt) so that dx_dt * dt is the correct term for the 
+ * the numerical stochastic integration of time step dt (see Documentation,
+ * section INTEGRATION).
+ */
+void HillPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
+						 boost::random::normal_distribution<>& dist , 
+						 boost::random::mt19937& generator , double q ) {
+	
+	/* dx = dt * f(x) + dt * (g(x) * rand * sqrt(q/dt)) */
+	/* This implementation has g(x) = 1 */
+	
+	double det_flow = 
+	_kinetic
+	* pow( curr_tissue.at(i_curr_cell , _i_promoter ) , _cooperativity )
+	/
+	( _K + pow( curr_tissue.at(i_curr_cell , _i_promoter ) , _cooperativity ));	
+	
+	double rand = dist(generator);
+	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	
+	double flow = det_flow + stoc_flow;
+	
+	if ( std::isnan(flow) ) {
+		//std::cout << "Found NaN" << std::endl;
+	}
+	
+	dx_dt.at(i_curr_cell,_i_promoted) += flow;
+	
+}
+
+/* Public Method: update_indices(first_index,num_insertion)
+ * -------------------------------------------------------------------------- 
+ * Updates indices i_reac_zero, i_reac_one, i_product, given an insertion
+ * of num_insertion molecules beginning at first_index into our genome.
+ *
+ * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
+ */
 void HillPromReaction::update_indices( int first_index , int num_insertion ) {
+	/* Note: Because NEXIST = -1, non-existant participants will never be 
+	 * updated by the insertion procedure as desired.
+	 */		
 	if (_i_promoter >= first_index) _i_promoter += num_insertion;
 	if (_i_promoted >= first_index) _i_promoted += num_insertion;
 }
 
+/* Public Method: mutate(generator)
+ * -------------------------------------------------------------------------- 
+ * Mutates either the kinetic constant, K, or cooperativity, chosen
+ * randomly. Mutates them through multiplication by random real chosen 
+ * uniformly between 0 and 2.
+ */
 void HillPromReaction::mutate ( boost::random::mt19937& generator ) {
 
 	boost::random::uniform_int_distribution<> which_kinetic(0,2);
@@ -100,10 +164,24 @@ void HillPromReaction::mutate ( boost::random::mt19937& generator ) {
 	
 }
 
+/* Public Method: print_info(line_start)
+ * -------------------------------------------------------------------------- 
+ * Prints the data describing the reaction, with line_start beginning each 
+ * line.
+ *
+ * Format:
+ *
+ *		<line_start> Reaction Type: Hill Promotion Reaction
+ *		<line_start> Index of Promoting Protein: <i>
+ *		<line_start> Index of Promoted Protein: <i>
+ *		<line_start> Kinetic Rate: <r>
+ *		<line_start> K: <r>
+ *		<line_start> Cooperativity: <r>
+ *		
+ */
 void HillPromReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "ReactionType: Hill Promotion Reaction" << std::endl;
-	//std::cout << line_start << "_num_part: " << _num_part << std::endl;
+	std::cout << line_start << "Reaction Type: Hill Promotion Reaction" << std::endl;
 	std::cout << line_start << "Index of Promoting Protein: " << _i_promoter << std::endl;
 	std::cout << line_start << "Index of Promoted Protein: " << _i_promoted << std::endl;
 	std::cout << line_start << "Kinetic Rate: " << _kinetic << std::endl;
@@ -112,4 +190,17 @@ void HillPromReaction::print_info ( std::string line_start ) {
 	
 }
 
+/* Public Method: to_file(file,line_start)
+ * -------------------------------------------------------------------------- 	
+ */
+void HillPromReaction::to_file ( std::ofstream& file , std::string line_start ) {
+	
+	file << line_start << "Reaction Type: Hill Promotion Reaction\n";
+	file << line_start << "Index of Promoting Protein: " << _i_promoter << "\n";
+	file << line_start << "Index of Promoted Protein: " << _i_promoted <<  "\n";
+	file << line_start << "Kinetic Rate: " << _kinetic <<  "\n";
+	file << line_start << "K: " << _K << "\n";
+	file << line_start << "Cooperativity: " << _cooperativity << "\n";
+	
+}
 

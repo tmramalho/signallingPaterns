@@ -27,14 +27,15 @@ class Gene : public Molecule {
 
 public:
 	Gene( int i_self, int i_product , int i_bound_promoter , int i_root , double init_conc );
-	Gene(Gene* newOne);
-	~Gene();
+	~Gene() {}
 	
 	int get_i_product();
 	int get_i_bound_promoter();
 	int get_i_root();
 
 	virtual void update_indices( int first_index , int num_insertions );
+	virtual void print_info ( std::string line_start );
+	virtual void to_file ( std::ofstream& file , std::string line_start);
 	
 protected:
 	
@@ -50,6 +51,10 @@ protected:
 	 * gene.
 	 */
 	int _i_root;
+	
+private:
+	Gene(Gene* newOne) {}
+	Gene& operator=( const Gene& rhs ) {return *this;}
 	
 };
 

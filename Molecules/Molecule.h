@@ -21,14 +21,20 @@
 #define MOLECULE_H
 
 # include <vector>
+# include <cstring>
+# include <cstdlib>
+# include <iostream>
+# include <fstream>
 # include "../Reactions/Reaction.h"
+# include "../old/helpers/SettingsCont.h"
+# include "../nexist.cpp"
 
 using namespace std;
 
 class Molecule {
 	
 public:
-	~Molecule();
+	~Molecule() {}
 	
 	unsigned int get_i_self();
 	double get_init_conc();
@@ -37,26 +43,32 @@ public:
 	int get_num_reac();
 
 	virtual void update_indices( int first_index , int num_insertion) = 0;
+	virtual void print_info ( std::string line_start ) = 0;
+	virtual void to_file (ofstream& file,std::string line_start) = 0;
 	
 protected:
 	
 	Molecule();
 	
-	static const int NEXIST = -1;
+	SettingsCont* _sc_ref;
 	
 	unsigned int _i_self;
 	
 	double _init_conc;
 	
-	/* The GenomeReactions are owned by the Genome class. The Molecule
-	 * class references them only so the molecule can know which
-	 * reactions it participates in without having to search for itself
-	 * in all reactions. 
+	/* The Reactions referenced in the _reactions vector are owned by the 
+	 * Manager class. The Molecule class references them only so the molecule
+	 * can know which reactions it participates in without having to search 
+	 * for itself in all reactions. 
 	 *
-	 * The molecule destructor should NOT delete the GenomeReactions.
+	 * The molecule destructor should NOT delete the Reactions.
 	 *
 	 */
 	vector<Reaction*> _reactions;
+	
+private:
+	Molecule(Molecule* newOne) {}
+	Molecule& operator=( const Molecule& rhs ) {return *this;}
 	
 };
 

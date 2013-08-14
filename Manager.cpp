@@ -8,214 +8,72 @@
 
 #include "Manager.h"
 
-/* Constructor: Manager()
- * -------------------------------------------------------------------------- 
- * Default implementation of constructor for use during development.
- *
- * Currently attempts to create a Delta-Notch like network.
+/* Constructor: Manager(method) 
+ * --------------------------------------------------------------------------
+ * Constructor that allows different construction methods, indicated by the 
+ * string method.
  */
-
-Manager::Manager() {
+Manager::Manager( ConstructionMethod m ) {
 	
-	_num_mol = 0; /* Before we add anything to the genome. Otherwise has random
-				 * initiation.
-				 */
+	_sc_ref = SettingsCont::getInstance();
+	_num_cell = _sc_ref->_neighbors.size();
 	
-	_num_cell = 3;
-	
-	/* Create neighbors vector: Linear tissue three long */
-	/* < [2] , [1,3] , [2] > */
-	_neighbors.push_back(new vector<int>(1,1));
-	vector<int>* addition = new vector<int>;
-	addition->push_back(0);
-	addition->push_back(2);
-	_neighbors.push_back(addition);
-	addition = new vector<int>(1,1);
-	_neighbors.push_back(addition);
-	
-	/* Initialize tissue vectors */
-	/* The substances in our genome are, in order, 
-	 * 
-	 *		[ d   n   d:N   d:N:N   D   N]
-	 *
-	 * Where lower-case refers to a gene, upper-case to a protein.
-	 *
-	 * Initial concentrations are
-	 *
-	 *		Cell 1: [ 1.0  1.0  0.0  0.0  0.0  1.0 ]
-	 *		Cell 2: [ 1.0  1.0  0.0  0.0  1.0  0.0 ]
-	 *		Cell 3: [ 1.0  1.0  0.0  0.0  0.0  1.0 ]
-	 *
-	 */
-	/*
-	double nums[5];
-	nums[0] = 1;
-	nums[1] = 1;
-	nums[2] = 0;
-	nums[3] = 0;
-	nums[4] = 0.0;
-	nums[5] = 1.0;
-	iTissue.push_back(new dvec(6,nums));
-	nums[4] = 1.0;
-	nums[5] = 0.0;
-	iTissue.push_back(new dvec(6,nums));
-	nums[4] = 0.0;
-	nums[5] = 1.0;
-	iTissue.push_back(new dvec(6,nums));
-	 */
-	
-	/* Initialize gene and protein vectors */
-	/* Reference detailed constructors and array of
-	 * elements of genome above to understand 
-	 * paramaters.
-	 */
-	add_gene(1.0,1.0); // Delta
-	/* < d D > */
-	add_gene(0.0,1.0); // Notch
-	/* < d n D N > */
-	add_CombReaction( 1 , 1 , 50.0 , 5.0 ); // N + N <--> N:N
-	/* < d n D N N:N > */
-	add_PromBindingReac(0 , 2 , 10.0 , 1.0 , 0.0); // d + N:N <--> d:(N:N)
-	/* < d n d:(N:N) D N N:N > */
-	add_LatPromReac(1 , 0 , 1.0 , .01 ); // N promoted by neighboring D
-	
-	/*
-	genes.push_back(new Gene(0,4,-1,-1));
-	genes.push_back(new Gene(1,5,-1,-1));
-	genes.push_back(new Gene(2,4,5,0));
-	genes.push_back(new Gene(3,4,5,2));
-	proteins.push_back(new Protein(4,-1,-1));
-	proteins.push_back(new Protein(5,-1,-1));
-	*/
-	
-	/* Initialize time variables */
-	_dt = .001;
-	_time = 0.0;
-	
-	/* Initialize Integration Mode */
-	_mode = RK4_DET_TI;
-	
-	/* Initialize */
-	initialize();
-	
-	
-	_curr_tissue.at(0,3) = 1.0;
-	_curr_tissue.at(0,4) = 0.0;
-	_curr_tissue.at(1,3) = 0.0;
-	_curr_tissue.at(1,4) = 1.0;
-	_curr_tissue.at(1,5) = 0.0;
-	_curr_tissue.at(2,3) = 1.0;
-	_curr_tissue.at(2,3) = 0.0;
-	 
-	/*
-	_curr_tissue.at(0,0) = .942203;
-	_curr_tissue.at(0,1) = 1.0;
-	_curr_tissue.at(0,2) = .0577972;
-	_curr_tissue.at(0,3) = .942328;
-	_curr_tissue.at(0,4) = .00112699;
-	_curr_tissue.at(0,5) = .00614686;
-	
-	_curr_tissue.at(1,0) = .00330837;
-	_curr_tissue.at(1,1) = 1.0;
-	_curr_tissue.at(1,2) = .996692;
-	_curr_tissue.at(1,3) = .00335278;
-	_curr_tissue.at(1,4) = .2987579;
-	_curr_tissue.at(1,5) = 20.1277;
-	
-	_curr_tissue.at(2,0) = .942203;
-	_curr_tissue.at(2,1) = 1.0;
-	_curr_tissue.at(2,2) = .0577972;
-	_curr_tissue.at(2,3) = .942328;
-	_curr_tissue.at(2,4) = .00112699;
-	_curr_tissue.at(2,5) = .00614686;
-	*/
+	try {
+		if (m == HAKIM_DELTA_NOTCH) {
+			hakim_delta_notch_construct();
+		}
+		else if (m == COLLIER_DELTA_NOTCH) {
+			collier_delta_notch_construct();
+		}
+		else if (m == MUTATION) {
+			mutation_construct();
+		}
+		else if (m == ONE_PROTEIN) {
+			one_protein_construct();
+		}
+		else { throw -1; }
+	}
+	catch ( int i ) {
+		std::cout << "Invalid construction method\n";
+	}
 	
 }
 
-Manager::Manager( string method ) {
+/* Copy Constructor: Manager(newOne) 
+ * --------------------------------------------------------------------------
+ * WARNING: We want our Manager to always be consistent with the settings
+ * in SettingsCont. We will copy directly from *newOne. If newOne is not
+ * consistent (ie, incorrect _sc_pointer or _num_cell doesn't match the
+ * _neighbors vector), then neither will this Manager.
+ * The reactions retreive _sc_ref through the getInstance() method.
+ */
 
-	if (method == "Delta-Notch") {
-		_num_mol = 0; /* Before we add anything to the genome. Otherwise has random
-					   * initiation.
-					   */
-		
-		_num_cell = 3;
-		
-		/* Create neighbors vector: Linear tissue three long */
-		/* < [2] , [1,3] , [2] > */
-		_neighbors.push_back(new vector<int>(1,1));
-		vector<int>* addition = new vector<int>;
-		addition->push_back(0);
-		addition->push_back(2);
-		_neighbors.push_back(addition);
-		addition = new vector<int>(1,1);
-		_neighbors.push_back(addition);
-		
-		/* Initialize gene and protein vectors */
-		/* Reference detailed constructors and array of
-		 * elements of genome above to understand 
-		 * paramaters.
-		 */
-		add_gene(1.0,1.0); // Delta
-		/* < d D > */
-		add_gene(0.0,1.0); // Notch
-		/* < d n D N > */
-		add_CombReaction( 1 , 1 , 50.0 , 5.0 ); // N + N <--> N:N
-		/* < d n D N N:N > */
-		add_PromBindingReac(0 , 2 , 10.0 , 1.0 , 0.0); // d + N:N <--> d:(N:N)
-		/* < d n d:(N:N) D N N:N > */
-		add_LatPromReac(1 , 0 , 1.0 , .01 ); // N promoted by neighboring D
-		
-		/* Initialize time variables */
-		_dt = .001;
-		_time = 0.0;
-		
-		/* Initialize Integration Mode */
-		_mode = RK4_DET_TI;
-		
-		/* Initialize */
-		initialize();
-		
-		
-		_curr_tissue.at(0,3) = 1.0;
-		_curr_tissue.at(0,4) = 0.0;
-		_curr_tissue.at(1,3) = 0.0;
-		_curr_tissue.at(1,4) = 1.0;
-		_curr_tissue.at(1,5) = 0.0;
-		_curr_tissue.at(2,3) = 1.0;
-		_curr_tissue.at(2,3) = 0.0;
-		
-		
+Manager::Manager( Manager *newOne ) {
+	
+	_sc_ref = newOne->_sc_ref;
+	_time = newOne->_time;
+	_num_mol = newOne->_num_mol;
+	_num_cell = newOne->_num_cell;
+	
+	/* We do not give Gene a public copy constructor. We instead copy 
+	 * manually
+	 */
+	
+	for ( int i_gene = 0 ; i_gene < newOne->_genes.size() ; i_gene++ ) {
+		Gene *gene_ref = newOne->_genes.at(i_gene);
+		_genes.push_back( new Gene ( gene_ref->get_i_self() , gene_ref->get_i_product() , 
+									gene_ref->get_i_bound_promoter() , gene_ref->get_i_root() , 
+									gene_ref->get_init_conc() ) );
 	}
 	
-	else if (method == "mutation") {
-		_num_mol = 0; /* Before we add anything to the genome. Otherwise has random
-					   * initiation.
-					   */
-		
-		_num_cell = 3;
-		
-		/* Create neighbors vector: Linear tissue three long */
-		/* < [2] , [1,3] , [2] > */
-		_neighbors.push_back(new vector<int>(1,1));
-		vector<int>* addition = new vector<int>;
-		addition->push_back(0);
-		addition->push_back(2);
-		_neighbors.push_back(addition);
-		addition = new vector<int>(1,1);
-		_neighbors.push_back(addition);
-		
-		/* Build genome through random mutations */
-		unsigned seed = std::time(0);
-		boost::random::mt19937 generator(seed);
-		
-		add_gene(1.0,1.0);
-		
-		for (int i = 0 ; i < 7 ; i++) {
-			std::cout << std::endl << "Mutation " << i << std::endl;
-			mutate(generator);
-			print_genome();
-		}
+	for ( int i_prot = 0 ; i_prot < newOne->_proteins.size() ; i_prot++ ) {
+		Protein *prot_ref = newOne->_proteins.at(i_prot);
+		_proteins.push_back( new Protein ( prot_ref->get_i_self() , prot_ref->get_i_root_zero() ,
+										  prot_ref->get_i_root_one() , prot_ref->get_init_conc() ) );
+	}
+	
+	for ( int i_reac = 0 ; i_reac < newOne->_reactions.size() ; i_reac++ ) {
+		_reactions.push_back( newOne->_reactions.at(i_reac)->copy() );
 	}
 	
 }
@@ -224,46 +82,29 @@ Manager::Manager( string method ) {
  * -------------------------------------------------------------------------- 
  */
 Manager::~Manager() {
-
-	_reactions.erase(_reactions.begin(),_reactions.end());
 	_genes.erase(_genes.begin(),_genes.end());
 	_proteins.erase(_proteins.begin(),_proteins.end());
-	_neighbors.erase(_neighbors.begin(),_neighbors.end());
-	
+	_reactions.erase(_reactions.begin(),_reactions.end());
 }
 
-/* Public Method: set_mode(mode)
- * -------------------------------------------------------------------------- 
- * Sets integration mode of Manager.
+/* Constructor: mutate(generator) 
+ * --------------------------------------------------------------------------
+ * Performs a random mutation on the genome.
+ *
+ * Though eventually we want to be able to change the parameters of the
+ * mutation process, currently mutations occur as follows:
+ *
+ * One of the following 5 types of mutations can occur, with an equal
+ * probability of each:
+ *		
+ *		1. The degredation constant of a protein is modified.
+ *		2. A kinetic constant for a non-degredation reaction is modified.
+ *		3. A gene and its associated protein are added to the genome.
+ *		4. A interaction between a protein and a gene is added, creating
+ *		a gene-protein complex with a modified protein production rate.
+ *		5. A post-transcriptional mutation is added (ie, dimerization, etc)
+ * 
  */
-void Manager::set_mode( IntegrationType mode ) {
-	_mode = mode;
-}
-
-/* Public Method: get_mode()
- * -------------------------------------------------------------------------- 
- * Returns current integration mode of Manager.
- */
-IntegrationType Manager::get_mode() {
-	return _mode;
-}
-
-/* Public Method: set_dt(dt)
- * -------------------------------------------------------------------------- 
- * Sets time step size to be used in integration.
- */
-void Manager::set_dt( double dt ) {
-	_dt = dt;
-}
-
-/* Public Method: get_dt()
- * -------------------------------------------------------------------------- 
- * Returns current time step size used in integration.
- */
-double Manager::get_dt() {
-	return _dt;
-}
-
 void Manager::mutate( boost::random::mt19937& generator ) {
 	
 	boost::random::uniform_int_distribution<> which_mutation(0,4);
@@ -296,7 +137,7 @@ void Manager::mutate( boost::random::mt19937& generator ) {
  * -------------------------------------------------------------------------- 
  * Initialize by making the dmat the appropriate size according to _num_mol,
  * and then filling each dmat with the initial concentrations of the proteins 
- * and genes, and setting the time = 0.
+ * and genes, and setting _time = 0.
  */
 void Manager::initialize() {
 	resize_dmats();
@@ -316,104 +157,169 @@ void Manager::initialize() {
 	}
 }
 
-/* Public Method: integrate(mode,dt,num_step)
+/* Public Method: integrate(num_step,generator)
  * -------------------------------------------------------------------------- 
  * Runs the ODE by filling in the currTissue vector based on iTissue, 
- * reactions, and mode.
+ * reactions, and integration mode.
  */
-void Manager::integrate( int num_step ) {
+void Manager::integrate( int num_step , boost::random::mt19937& generator ) {
 	
-	switch (_mode) {
+	switch ( _sc_ref->_mode ) {
 		
 		case RK4_DET_TI:
 			rk4_det_ti(num_step);
 			break;
 			
 		case RK4_STC_TI:
-			rk4_stc_ti(num_step);
+			rk4_stc_ti( num_step , generator );
 			break;
 			
 		default:
+			std::cout << "No integration occurred: Invalid mode\n";
 			break;
 	}
 }
 
+/* Public Method: integrate(num_step,generator,file)
+ * -------------------------------------------------------------------------- 
+ * Runs the ODE by filling in the currTissue vector based on iTissue, 
+ * reactions, and integration mode. Writes state to file at each time step.
+ */
+void Manager::integrate( int num_step , boost::random::mt19937& generator ,
+						ofstream& file ) {
+	
+	switch ( _sc_ref->_mode ) {
+			
+		case RK4_DET_TI:
+			rk4_det_ti(num_step,file);
+			break;
+			
+		case RK4_STC_TI:
+			rk4_stc_ti( num_step , generator , file );
+			break;
+			
+		default:
+			std::cout << "No integration occurred: Invalid mode\n";
+			break;
+	}
+}
+
+/* Public Method: get_curr_state()
+ * -------------------------------------------------------------------------- 
+ */
+dmat Manager::get_curr_state() {
+	return _curr_tissue;
+}
+
 /* Public Method: print_state()
  * -------------------------------------------------------------------------- 
- * For the user.
- * Currently goes through each cell in the vector and prints out the 
- * protein concentrations in each cell, (assuming there are 6 of them).
+ * Prints the concentration of each molecule in each cell.
+ *
+ * Format:
+ *
+ *		time: <t>
+ *		Cell: <i>
+ *		conc_1 :::: conc_2 :::: conc_3 :::: conc_4 :::: ..... :::: conc_n
+ *
  */
 void Manager::print_state() {
 	std::cout << "time: " << _time << std::endl;
 	for ( int i = 0 ; i < _num_cell ; i++ ) {
 		std::cout << "Cell: " << i << std::endl;
-		std::cout << _curr_tissue.at(i,0) << " :::: " <<
-		_curr_tissue.at(i,1) << " :::: " << _curr_tissue.at(i,2) <<
-		" :::: " << _curr_tissue.at(i,3) << " :::: " << _curr_tissue.at(i,4) <<
-		" :::: " << _curr_tissue.at(i,5) << std::endl;
+		for ( int j = 0 ; j < (_genes.size() + _proteins.size() - 1) ; j++ ) {
+			std::cout << _curr_tissue.at(i,j) << " :::: ";
+		}
+		std::cout << _curr_tissue.at(i,(_genes.size() + _proteins.size() - 1)) << std::endl;
 	}
 	std::cout << std::endl;
 }
 
+/* Public Method: print_genome()
+ * -------------------------------------------------------------------------- 
+ * Lists the current genes, proteins, and reactions in our genome.
+ * 
+ * Format:
+ *
+ *		GENES:
+ *		Gene <i>:
+ *			<info>
+ *
+ *		PROTEINS:
+ *		Protein <i>:
+ *			<info>
+ *
+ *		REACTIONS:
+ *		Reaction <i>:
+ *			<info>
+ * 
+ */
 void Manager::print_genome() {
 	
 	std::cout << std::endl;
-	std::cout << "Genes: " << std::endl;
+	std::cout << "GENES: " << std::endl;
 	for ( int i_gene = 0 ; i_gene < _genes.size() ; i_gene++ ) {
 		std::cout << "Gene " << i_gene << ": " << std::endl;
-		std::cout << "\t" << "Index of Self: " << _genes.at(i_gene)->get_i_self() << std::endl;
-		std::cout << "\t" << "Index of Protein This Produces: " << _genes.at(i_gene)->get_i_product() << std::endl;
-		if ( _genes.at(i_gene)->get_i_bound_promoter() != NEXIST ) {
-			std::cout << "\t" << "Index of Protein Bound to This Gene: " << _genes.at(i_gene)->get_i_bound_promoter() << std::endl;
-		}
-		else {
-			std::cout << "\t" << "Index of Protein Bound to This Gene: NO PROTEINS BOUND TO THIS GENE" << std::endl;
-		}
-		if ( _genes.at(i_gene)->get_i_root() != NEXIST ) {
-			std::cout << "\t" << "Index of Gene This Gene Derived From: " << _genes.at(i_gene)->get_i_root() << std::endl;
-		}
-		else {
-			std::cout << "\t" << "Index of Gene This Gene Derived From: GENE NOT DERIVED FROM SIMPLER GENE" << std::endl;
-		}
+		_genes.at(i_gene)->print_info("\t");
 	}
 	std::cout << std::endl << std::endl;
 	
-	std::cout << "Proteins: " << std::endl;
-	int i = _genes.size();
-	int j = _proteins.size();
+	std::cout << "PROTEINS: " << std::endl;
 	for ( int i_protein = 0 ; i_protein < _proteins.size() ; i_protein++ ) {
-		
-		std::cout << "Protein " << i_protein + _genes.size() << ": " << std::endl;
-		
-		std::cout << "\t" << "Index of Self: " << _proteins.at(i_protein)->get_i_self() << std::endl;
-		
-		if ( _proteins.at(i_protein)->get_i_root_zero() != NEXIST ) {
-			std::cout << "\t" << "Index of First Constituent Protein (in Complex): ";
-			std::cout << _proteins.at(i_protein)->get_i_root_zero() << std::endl;
-		}
-		else {
-			std::cout << "\t" << "Index of First Constituent Protein (in Complex): "; 
-			std::cout << "NOT A COMPLEX" << std::endl;
-		}
-		
-		if ( _proteins.at(i_protein)->get_i_root_one() != NEXIST ) {
-			std::cout << "\t" << "Index of Second Constituent Protein (in Complex): ";
-			std::cout << _proteins.at(i_protein)->get_i_root_one() << std::endl;
-		}
-		else {
-			std::cout << "\t" << "Index of Second Constituent Protein (in Complex): "; 
-			std::cout << "NOT A COMPLEX" << std::endl;
-		}
+		std::cout<< "Protein " << i_protein + _genes.size() << ":\n";
+		_proteins.at(i_protein)->print_info("\t");
 	}
 	std::cout << std::endl << std::endl;
 	
-	std::cout << "Reactions: " << std::endl;
+	std::cout << "REACTIONS: " << std::endl;
 	for ( int i_reac = 0 ; i_reac < _reactions.size() ; i_reac++ ) {
 		std::cout << "Reaction " << i_reac << ": " << std::endl;
 		_reactions.at(i_reac)->print_info("\t");
 	}
 	std::cout << std::endl << std::endl;
+}
+
+/* Public Method: genome_to_file(file,line_start)
+ * -------------------------------------------------------------------------- 
+ */
+
+void Manager::genome_to_file( ofstream& file , std::string line_start ) {
+
+	file << "GENES:\n";
+	for ( int i_gene = 0 ; i_gene < _genes.size() ; i_gene++ ) {
+		file << "Gene " << i_gene << ":\n";
+		_genes.at(i_gene)->to_file(file,line_start);
+	}
+	file << "\n\n";
+	
+	file << "PROTEINS:\n";
+	for ( int i_protein = 0 ; i_protein < _proteins.size() ; i_protein++ ) {
+		file << "Protein " << i_protein + _genes.size() << ":\n";
+		_proteins.at(i_protein)->to_file(file,line_start);
+	}
+	file << "\n\n";
+	
+	file << "REACTIONS:\n";
+	for ( int i_reac = 0 ; i_reac < _reactions.size() ; i_reac++ ) {
+		file << "Reaction " << i_reac << ":\n";
+		_reactions.at(i_reac)->to_file(file,line_start);
+	}
+	
+}
+
+/* Public Method: state_to_file(file)
+ * -------------------------------------------------------------------------- 
+ */
+
+void Manager::state_to_file( std::ofstream& file ) {
+	
+	file << _time << " ";
+	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
+		for ( int i_mol = 0 ; i_mol < _num_mol ; i_mol++ ) {
+			file << _curr_tissue.at(i_cell,i_mol) << " ";
+		}
+	}
+	file << "\n";
+	
 }
 
 /* Private Method: react(xi,dx_dt)
@@ -435,7 +341,36 @@ void Manager::react(dmat& xi,dmat& dx_dt) {
 	
 	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
 		for ( int i_reac = 0 ; i_reac < _reactions.size() ; i_reac++ ) {
-			_reactions.at(i_reac)->react( xi , dx_dt , _neighbors , i_cell );
+			_reactions.at(i_reac)->react( xi , dx_dt , i_cell );
+		}
+	}
+	
+}
+
+/* Private Method: react(xi,dx_dt,dist,generator)
+ * -------------------------------------------------------------------------- 
+ * Given the current reactions in our genome, it fills the dx_dt vector, 
+ * passed to it by reference, with the current rates of change of the 
+ * molecules, given the concentrations held in the dmat xi.
+ *
+ * CAUTION: We assume xi and dx_dt are the same size. Nothing in the method
+ * checks for this.
+ */
+
+void Manager::react( dmat& xi , dmat& dx_dt , 
+					boost::random::normal_distribution<>& dist ,
+					boost::random::mt19937& generator ,
+					double q) {
+	
+	/* Because the react method for reactions only adds a rate to the current
+	 * rates held in dx_dt, we must first set all elements to zero.
+	 */
+	dx_dt.zero();
+	
+	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
+		for ( int i_reac = 0 ; i_reac < _reactions.size() ; i_reac++ ) {
+			_reactions.at(i_reac)->react( xi , dx_dt , i_cell ,
+										 dist , generator , q );
 		}
 	}
 	
@@ -699,22 +634,22 @@ void Manager::add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_pro
  *		proteins.
  */
 
-void Manager::add_LatPromReac( int i_loc_prot_in_prots , 
-							  int i_neighbor_prot_in_prots ,
+void Manager::add_LatPromReac( int i_promoted_by_neighbors_in_prots , 
+							  int i_promoting_neighbors_in_prots ,
 							  double kinetic , double K ) {
 	
-	int i_local_prot = _genes.size() + i_loc_prot_in_prots;
-	int i_neighbor_prot = _genes.size() + i_neighbor_prot_in_prots;
+	int i_promoting_neighbors = _genes.size() + i_promoting_neighbors_in_prots;
+	int i_promoted_by_neighbors = _genes.size() + i_promoted_by_neighbors_in_prots;
 	
 	/* Step 1 */
-	_reactions.push_back(new LatPromReaction(i_local_prot,i_neighbor_prot,
+	_reactions.push_back(new LatPromReaction(i_promoted_by_neighbors,i_promoting_neighbors,
 											 kinetic,K));
 	
 	/* Step 2 */
 	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-1); // add new LatPromReaction
-	_proteins.at(i_loc_prot_in_prots)->add_reaction(curr_reac_ref); // to local protein
-	if ( i_loc_prot_in_prots != i_neighbor_prot_in_prots ) {
-		_proteins.at(i_neighbor_prot_in_prots)->add_reaction(curr_reac_ref); // to neighbor protein
+	_proteins.at(i_promoted_by_neighbors_in_prots)->add_reaction(curr_reac_ref); // to local protein
+	if ( i_promoted_by_neighbors_in_prots != i_promoting_neighbors_in_prots ) {
+		_proteins.at(i_promoting_neighbors_in_prots)->add_reaction(curr_reac_ref); // to neighbor protein
 	}
 	
 }
@@ -781,7 +716,7 @@ void Manager::add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_pro
 	int i_repressed = _genes.size() + i_repressed_in_prots;
 	
 	/* Step 1 */
-	_reactions.push_back(new HillPromReaction(i_repressor,i_repressed,
+	_reactions.push_back(new HillRepReaction(i_repressor,i_repressed,
 											  kinetic,K,cooperativity));
 	
 	/* Step 2 */
@@ -930,42 +865,98 @@ void Manager::rk4_det_ti( int num_step ) {
 	
 	dmat dx_dt ( _num_cell , _num_mol );
 	
+	double dt = _sc_ref->_dt;
+	
 	for ( int step = 0 ; step < num_step ; step++ ) {
 		
 		/* ----------------------------------------- */
 		react ( _curr_tissue , dx_dt );
-		k1.equals_lin_comb( dx_dt , _dt );
+		k1.equals_lin_comb( dx_dt , dt );
 		/* ----------------------------------------- */
 		x2.equals_lin_comb(_curr_tissue , 1.0 ,
 						   k1 , .5 );
 		react ( x2 , dx_dt );
-		k2.equals_lin_comb( dx_dt , _dt );
+		k2.equals_lin_comb( dx_dt , dt );
 		/* ----------------------------------------- */
 		x3.equals_lin_comb(_curr_tissue , 1.0 ,
 						   k2 , .5 );
 		react ( x3 , dx_dt );
-		k3.equals_lin_comb( dx_dt , _dt );
+		k3.equals_lin_comb( dx_dt , dt );
 		/* ----------------------------------------- */
 		x4.equals_lin_comb(_curr_tissue,1.0 ,
 						   k3,1.0 );
 		react ( x4 , dx_dt );
-		k4.equals_lin_comb( dx_dt , _dt);
+		k4.equals_lin_comb( dx_dt , dt);
 		/* ----------------------------------------- */
 		_curr_tissue.plus_equals_lin_comb(k1,.166666666667,
 										  k2,.333333333333,
 										  k3,.333333333333,
 										  k4,.166666666667);
 		/* ----------------------------------------- */
-		_time += _dt;
+		_time += dt;
 		//print_state();
 	}
 }
 
-/* Private Method: rk4_stc_ti(num_step)
+/* Private Method: rk4_det_ti(num_step,file)
  * -------------------------------------------------------------------------- 
  */
 
-void Manager::rk4_stc_ti( int num_step ) {
+void Manager::rk4_det_ti( int num_step , ofstream& file) {
+	
+	dmat k1 ( _num_cell , _num_mol );
+	dmat k2 ( _num_cell , _num_mol );
+	dmat k3 ( _num_cell , _num_mol );
+	dmat k4 ( _num_cell , _num_mol );
+	
+	dmat x2 ( _num_cell , _num_mol );
+	dmat x3 ( _num_cell , _num_mol );
+	dmat x4 ( _num_cell , _num_mol );
+	
+	dmat dx_dt ( _num_cell , _num_mol );
+	
+	double dt = _sc_ref->_dt;
+	
+	for ( int step = 0 ; step < num_step ; step++ ) {
+		
+		/* ----------------------------------------- */
+		react ( _curr_tissue , dx_dt );
+		k1.equals_lin_comb( dx_dt , dt );
+		/* ----------------------------------------- */
+		x2.equals_lin_comb(_curr_tissue , 1.0 ,
+						   k1 , .5 );
+		react ( x2 , dx_dt );
+		k2.equals_lin_comb( dx_dt , dt );
+		/* ----------------------------------------- */
+		x3.equals_lin_comb(_curr_tissue , 1.0 ,
+						   k2 , .5 );
+		react ( x3 , dx_dt );
+		k3.equals_lin_comb( dx_dt , dt );
+		/* ----------------------------------------- */
+		x4.equals_lin_comb(_curr_tissue,1.0 ,
+						   k3,1.0 );
+		react ( x4 , dx_dt );
+		k4.equals_lin_comb( dx_dt , dt);
+		/* ----------------------------------------- */
+		_curr_tissue.plus_equals_lin_comb(k1,.166666666667,
+										  k2,.333333333333,
+										  k3,.333333333333,
+										  k4,.166666666667);
+		/* ----------------------------------------- */
+		_time += dt;
+		
+		state_to_file(file);
+		
+	}
+}
+
+/* Private Method: rk4_stc_ti(num_step,generator)
+ * -------------------------------------------------------------------------- 
+ */
+
+void Manager::rk4_stc_ti( int num_step , boost::random::mt19937& generator ) {
+	
+	boost::random::normal_distribution<> norm_dist(0.0,_sc_ref->_stochasticity);
 	
 	double a21;
 	double a31;
@@ -985,14 +976,6 @@ void Manager::rk4_stc_ti( int num_step ) {
 	double q2;
 	double q3;
 	double q4;
-	double t1;
-	double t2;
-	double t3;
-	double t4;
-	double w1;
-	double w2;
-	double w3;
-	double w4;
 	dmat x2 ( _num_cell , _num_mol );
 	dmat x3 ( _num_cell , _num_mol );
 	dmat x4 ( _num_cell , _num_mol );
@@ -1014,12 +997,213 @@ void Manager::rk4_stc_ti( int num_step ) {
 	q3 =  11.22760917474960;
 	q4 =  13.36199560336697;
 	
+	double dt = _sc_ref->_dt;
+	
+	for ( int step = 0 ; step < num_step ; step++ ) {
+		 
+		react(_curr_tissue,dx_dt,norm_dist,generator,q1);
+		k1.equals_lin_comb(dx_dt,dt);
+		/* ----------------------------------------- */
+		x2.equals_lin_comb(_curr_tissue,1.0,
+						   k1,a21);
+		react(x2,dx_dt,norm_dist,generator,q2);
+		k2.equals_lin_comb( dx_dt , dt );
+		/* ----------------------------------------- */
+		x3.equals_lin_comb(_curr_tissue,1.0,
+						   k1,a31,
+						   k2,a32);
+		react(x3,dx_dt,norm_dist,generator,q3);
+		k3.equals_lin_comb(dx_dt,dt);
+		/* ----------------------------------------- */
+		x4.equals_lin_comb(_curr_tissue,1.0,
+						   k1,a41,
+						   k2,a42);
+		react(x4,dx_dt,norm_dist,generator,q4);
+		k4.equals_lin_comb(dx_dt,dt);
+		/* ----------------------------------------- */
+		_curr_tissue.plus_equals_lin_comb(k1,a51,
+										  k2,a52,
+										  k3,a53,
+										  k4,a54);
+		
+		_time += dt;
+		
+		
+	}
+}
+
+/* Private Method: rk4_stc_ti(num_step,generator,file)
+ * -------------------------------------------------------------------------- 
+ */
+
+void Manager::rk4_stc_ti( int num_step , boost::random::mt19937& generator , std::ofstream& file) {
+	
+	boost::random::normal_distribution<> norm_dist(0.0,_sc_ref->_stochasticity);
+	
+	double a21;
+	double a31;
+	double a32;
+	double a41;
+	double a42;
+	double a43;
+	double a51;
+	double a52;
+	double a53;
+	double a54;
+	dmat k1 ( _num_cell , _num_mol );
+	dmat k2 ( _num_cell , _num_mol );
+	dmat k3 ( _num_cell , _num_mol );
+	dmat k4 ( _num_cell , _num_mol );
+	double q1;
+	double q2;
+	double q3;
+	double q4;
+	dmat x2 ( _num_cell , _num_mol );
+	dmat x3 ( _num_cell , _num_mol );
+	dmat x4 ( _num_cell , _num_mol );
+	dmat dx_dt ( _num_cell , _num_mol );
+	
+	a21 =   2.71644396264860;
+	a31 = - 6.95653259006152;
+	a32 =   0.78313689457981;
+	a41 =   0.0;
+	a42 =   0.48257353309214;
+	a43 =   0.26171080165848;
+	a51 =   0.47012396888046;
+	a52 =   0.36597075368373;
+	a53 =   0.08906615686702;
+	a54 =   0.07483912056879;
+	
+	q1 =   2.12709852335625;
+	q2 =   2.73245878238737;
+	q3 =  11.22760917474960;
+	q4 =  13.36199560336697;
+	
+	double dt = _sc_ref->_dt;
+	
 	for ( int step = 0 ; step < num_step ; step++ ) {
 		
+		react(_curr_tissue,dx_dt,norm_dist,generator,q1);
+		k1.equals_lin_comb(dx_dt,dt);
+		/* ----------------------------------------- */
+		x2.equals_lin_comb(_curr_tissue,1.0,
+						   k1,a21);
+		react(x2,dx_dt,norm_dist,generator,q2);
+		k2.equals_lin_comb( dx_dt , dt );
+		/* ----------------------------------------- */
+		x3.equals_lin_comb(_curr_tissue,1.0,
+						   k1,a31,
+						   k2,a32);
+		react(x3,dx_dt,norm_dist,generator,q3);
+		k3.equals_lin_comb(dx_dt,dt);
+		/* ----------------------------------------- */
+		x4.equals_lin_comb(_curr_tissue,1.0,
+						   k1,a41,
+						   k2,a42);
+		react(x4,dx_dt,norm_dist,generator,q4);
+		k4.equals_lin_comb(dx_dt,dt);
+		/* ----------------------------------------- */
+		_curr_tissue.plus_equals_lin_comb(k1,a51,
+										  k2,a52,
+										  k3,a53,
+										  k4,a54);
 		
-		
-		_time += _dt;
-		print_state();
+		_time += dt;
+		state_to_file(file);
 	}
+}
+
+void Manager::hakim_delta_notch_construct() {
+	_num_mol = 0; /* Before we add anything to the genome. Otherwise has random
+				   * initiation.
+				   */
+	
+	/* Initialize gene and protein vectors */
+	/* Reference detailed constructors and array of
+	 * elements of genome above to understand 
+	 * paramaters.
+	 */
+	add_gene(1.0,1.0); // Delta
+	/* < d D > */
+	add_gene(0.0,1.0); // Notch
+	/* < d n D N > */
+	add_CombReaction( 1 , 1 , 50.0 , 5.0 ); // N + N <--> N:N
+	/* < d n D N N:N > */
+	add_PromBindingReac(0 , 2 , 10.0 , 1.0 , 0.0); // d + N:N <--> d:(N:N)
+	/* < d n d:(N:N) D N N:N > */
+	add_LatPromReac(1 , 0 , 1.0 , .01 ); // N promoted by neighboring D
+	
+	/* Initialize */
+	initialize();
+	
+	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
+		if ( i_cell % 2 == 0 ) {
+			_curr_tissue.at(i_cell,3) = 1.0;
+			_curr_tissue.at(i_cell,4) = 0.0;
+		}
+		else { // i_cell % 2 == 1
+			_curr_tissue.at(i_cell,3) = 0.0;
+			_curr_tissue.at(i_cell,4) = 1.0;
+			_curr_tissue.at(i_cell,5) = 0.0;
+		}
+	}
+}
+
+void Manager::collier_delta_notch_construct() {
+	_num_mol = 0;
+	
+	add_gene(0.0,1.0); // Delta
+	/* < d D > */
+	add_gene(0.0,1.0); // Notch
+	/* < d n D N > */
+	add_LatPromReac(1,0,1.0,.01); // dN/dt = (D_n)^2 / (.01 + (D_n)^2)
+	/* < d n D N > */
+	add_HillRepReac(1,0,1.0,.01,2); // dD/dt = 1 / (1 + 100N^2)
+	/* < d n D N > */
+	
+	/* Initialize protein concentrations */
+	initialize();
+	unsigned seed = std::time(0);
+	boost::random::mt19937 generator(seed);
+	boost::random::normal_distribution<> norm_dist(0.0,1.0);
+	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
+		if ( i_cell % 2 == 0 ) {
+			_curr_tissue.at(i_cell,2) = .5 + 0.0 * norm_dist(generator);
+			_curr_tissue.at(i_cell,3) = .5 + 0.0 * norm_dist(generator);
+		}
+		else {
+			_curr_tissue.at(i_cell,2) = .5 + 0.0 * norm_dist(generator);
+			_curr_tissue.at(i_cell,3) = .5 + 0.0 * norm_dist(generator);
+		}
+	}
+	
+}
+
+void Manager::mutation_construct() {
+	_num_mol = 0; /* Before we add anything to the genome. Otherwise has random
+				   * initiation.
+				   */
+	
+	/* Build genome through random mutations */
+	unsigned seed = std::time(0);
+	boost::random::mt19937 generator(seed);
+	
+	add_gene(1.0,1.0);
+	
+	for (int i = 0 ; i < 5 ; i++) {
+		//std::cout << std::endl << "Mutation " << i << std::endl;
+		mutate(generator);
+		//print_genome();
+	}	
+	
+	initialize();
+}
+
+void Manager::one_protein_construct() {
+	_num_mol = 0;
+	
+	add_gene(1.0,1.0);
+	
+	initialize();
 }
 

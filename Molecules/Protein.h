@@ -25,13 +25,14 @@ class Protein : public Molecule {
 
 public:
 	Protein( int i_self , int i_root_zero , int i_root_one , double init_conc );
-	Protein(Protein* newOne);
-	~Protein();
+	~Protein() {}
 	
 	int get_i_root_zero();
 	int get_i_root_one();
 	
 	virtual void update_indices( int first_index , int num_insertions );
+	virtual void print_info ( std::string line_start );
+	virtual void to_file ( std::ofstream& file , std::string line_start);
 	
 protected:
 	
@@ -42,6 +43,10 @@ protected:
 	 */
 	int _i_root_zero;
 	int _i_root_one;
+	
+private:
+	Protein(Protein* newOne) {}
+	Protein& operator=( const Protein& rhs ) {return *this;}
 
 };
 

@@ -23,22 +23,25 @@
 class PromReaction : public Reaction {
 	
 public:
-	PromReaction();
 	PromReaction( int i_gene , int i_prot , double kinetic );
-	PromReaction(PromReaction* newOne);
-	~PromReaction();
+	~PromReaction() {}
+	
+	virtual Reaction* copy();
 	
 	virtual int get_i_part( int part_num );
 	
-	virtual void react( dmat& currTissue , dmat& dx_dt ,
-					    std::vector< std::vector<int>* >& neighbors,
-					    int i_curr_cell );
+	virtual void react( dmat& currTissue , dmat& dx_dt , int i_curr_cell );
+	virtual void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
+					   boost::random::normal_distribution<>& dist , 
+					   boost::random::mt19937& generator , double q );	
 	
 	virtual void update_indices( int first_index , int num_insertion );
 	
 	virtual void mutate ( boost::random::mt19937& generator );
 	
 	virtual void print_info ( std::string line_start );
+	
+	virtual void to_file ( std::ofstream& file , std::string line_start );
 	
 private:
 	
@@ -48,6 +51,9 @@ private:
 	
 	/* Kinetic constants for the reaction. */
 	double _kinetic;
+	
+	PromReaction(PromReaction* newOne) {}
+	PromReaction& operator=( const PromReaction& rhs ) {return *this;}
 
 };
 

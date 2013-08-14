@@ -7,22 +7,27 @@
 
 #include "SettingsCont.h"
 
-SettingsCont *SettingsCont::scPointer = NULL;
+SettingsCont *SettingsCont::_sc_ref = NULL;
 
 SettingsCont::SettingsCont() {
-	numThreads = 2;
-	verbose = 0;
-	dim = 10;
-	bound = 0.01;
-	coop = 4.0;
-	p = 2;
-	sigma0 = 0.01;
-	poiss0 = 0.01;
-	acc = 1e-2;
-	na = 20;
-	ng = 50;
+	_num_threads = 2;
+	_verbose = 0;
+	_na = 20;
+	_ng = 50;
+	_stochasticity = .01;
+	
+	_neighbors.push_back(new std::vector<int>(1,1));
+	std::vector<int>* addition = new std::vector<int>;
+	addition->push_back(0);
+	addition->push_back(2);
+	_neighbors.push_back(addition);
+	addition = new std::vector<int>(1,1);
+	_neighbors.push_back(addition);
+	
+	_mode = RK4_STC_TI;
+	_dt = .001;
 }
-
+/*
 void SettingsCont::setParameters(int argc, char *argv[]) {
 	int c;
 	while ((c = getopt (argc, argv, "v:t:d:c:p:s:n:a:u:g:b:")) != -1) {
@@ -85,14 +90,48 @@ void SettingsCont::setParameters(int argc, char *argv[]) {
 	std::cout << std::setw(20) << "-a GSS accuracy: "  << acc << std::endl;
 	std::cout << std::endl;
 }
-
+*/
 SettingsCont::~SettingsCont() {
+	_neighbors.erase(_neighbors.begin(),_neighbors.end());
 }
 
 SettingsCont *SettingsCont::getInstance() {
-	if(scPointer == NULL) {
-		scPointer = new SettingsCont();
+	if(_sc_ref == NULL) {
+		_sc_ref = new SettingsCont();
 	}
 
-	return scPointer;
+	return _sc_ref;
 }
+
+void SettingsCont::set_neighbors ( std::string neighbors_code ) {
+	
+	_neighbors.erase(_neighbors.begin(),_neighbors.end());
+	
+	
+	for ( std::string::iterator it = neighbors_code.begin() ;
+		 it != neighbors_code.end() ;
+		 it++ ) {
+	
+		std::vector<int>* next = new std::vector<int>;
+		
+		/* While we are still reading this in this vector */
+		while ( *it != '|' ) {
+			
+			std::string num = "";
+			/* While we are still reading this number */
+			while ( *it != ',' ) {
+				num += *it;
+				it++;
+			}
+			next->push_back(atoi(num.c_str()));
+			it++;
+			
+		}
+		_neighbors.push_back(next);
+		
+	}
+	
+}
+
+
+

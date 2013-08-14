@@ -8,10 +8,12 @@
 
 #include "Reaction.h"
 
-
-Reaction::Reaction() {}
-
-Reaction::~Reaction() {}
+/* Constructor: Reaction()
+ * --------------------------------------------------------------------------
+ */
+Reaction::Reaction() {
+	_sc_ref = SettingsCont::getInstance();
+}
 
 /* Public Method: get_num_part()
  * --------------------------------------------------------------------------
