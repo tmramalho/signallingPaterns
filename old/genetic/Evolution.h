@@ -7,6 +7,7 @@
 #include <cmath>
 #include "../numeric/dvec.h"
 #include "../opt/FitnessFunction.h"
+#include "../opt/DNScore.h"
 #include "../helpers/SettingsCont.h"
 #include "../../Manager.h"
 #include "../../ConstructionMethod.h"
@@ -33,6 +34,7 @@ private:
 	int _verbose;
 	int _ng;
 	int _na;
+	int _mutations_per_gen;
 };
 
 #endif

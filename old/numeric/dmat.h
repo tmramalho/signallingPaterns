@@ -15,10 +15,15 @@ class dmat : public dvec {
 
 public:
 	dmat();
+	dmat(dmat* newOne);
 	dmat( unsigned int num_row , unsigned int num_col );
 	~dmat();
 	
 	double &at(int row, int col);
+	dmat &operator=(const dmat &other);
+	
+	int get_num_row() const;
+	int get_num_col() const;
 	
 	void resize( unsigned int num_row , unsigned int num_col );
 	

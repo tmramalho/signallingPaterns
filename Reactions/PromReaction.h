@@ -24,7 +24,7 @@ class PromReaction : public Reaction {
 	
 public:
 	PromReaction( int i_gene , int i_prot , double kinetic );
-	~PromReaction() {}
+	~PromReaction();
 	
 	virtual Reaction* copy();
 	

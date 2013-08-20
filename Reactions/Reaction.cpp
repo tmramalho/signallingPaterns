@@ -12,7 +12,12 @@
  * --------------------------------------------------------------------------
  */
 Reaction::Reaction() {
+	std::cout << "Reaction Default Constructor\n";
 	_sc_ref = SettingsCont::getInstance();
+}
+
+Reaction::~Reaction() {
+	std::cout << "Reaction Destructor " << _type << "\n";
 }
 
 /* Public Method: get_num_part()

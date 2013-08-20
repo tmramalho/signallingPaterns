@@ -8,6 +8,6 @@
 
 #include "TempFF.h"
 
-double TempFF::run(Manager *x) {
+double TempFF::run(Manager *x,boost::random::mt19937& generator) {
 	return 1.0;
 }

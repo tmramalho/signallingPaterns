@@ -31,6 +31,9 @@ Manager::Manager( ConstructionMethod m ) {
 		else if (m == ONE_PROTEIN) {
 			one_protein_construct();
 		}
+		else if (m == TWO_PROTEIN) {
+			two_protein_construct();
+		}
 		else { throw -1; }
 	}
 	catch ( int i ) {
@@ -54,6 +57,9 @@ Manager::Manager( Manager *newOne ) {
 	_time = newOne->_time;
 	_num_mol = newOne->_num_mol;
 	_num_cell = newOne->_num_cell;
+	
+	_curr_tissue.resize(_num_cell, _num_mol);
+	_i_tissue.resize(_num_cell,_num_mol);
 	
 	/* We do not give Gene a public copy constructor. We instead copy 
 	 * manually
@@ -82,20 +88,22 @@ Manager::Manager( Manager *newOne ) {
  * -------------------------------------------------------------------------- 
  */
 Manager::~Manager() {
-	_genes.erase(_genes.begin(),_genes.end());
+	int num_gene = _genes.size();
+	int num_prot = _proteins.size();
+	int num_reac = _reactions.size();
+	for ( int i_gene = 0 ; i_gene < num_gene ; i_gene++ ) {
+		delete _genes.at(i_gene);
+	}
 	_proteins.erase(_proteins.begin(),_proteins.end());
 	_reactions.erase(_reactions.begin(),_reactions.end());
 }
 
 /* Constructor: mutate(generator) 
  * --------------------------------------------------------------------------
- * Performs a random mutation on the genome.
+ * Performs a random mutation on the genome, picked randomly at uniform from
+ * the possibilities listed in the _mutation_types in SettingsCont.
  *
- * Though eventually we want to be able to change the parameters of the
- * mutation process, currently mutations occur as follows:
- *
- * One of the following 5 types of mutations can occur, with an equal
- * probability of each:
+ * The types of mutations are:
  *		
  *		1. The degredation constant of a protein is modified.
  *		2. A kinetic constant for a non-degredation reaction is modified.
@@ -103,28 +111,35 @@ Manager::~Manager() {
  *		4. A interaction between a protein and a gene is added, creating
  *		a gene-protein complex with a modified protein production rate.
  *		5. A post-transcriptional mutation is added (ie, dimerization, etc)
+ *		6. A Hill promotion or repression reaction within a cell is added.
+ *		
  * 
  */
 void Manager::mutate( boost::random::mt19937& generator ) {
 	
-	boost::random::uniform_int_distribution<> which_mutation(0,4);
+	int num_mutation = _sc_ref->_mutation_types.size();
+	
+	boost::random::uniform_int_distribution<> which_mutation(0,num_mutation-1);
 	int choice = which_mutation(generator);
 	
-	switch (choice) {
-		case 0:
+	switch (_sc_ref->_mutation_types.at(choice)) {
+		case DEGRADATION_M:
 			degredation_mutation(generator);
 			break;
-		case 1:
+		case KINETIC:
 			kinetic_mutation(generator);
 			break;
-		case 2:
-			add_gene(1.0,1.0); // Production and degredation set at 1.0
+		case ADD_GENE:
+			add_gene(0.0,1.0);
 			break;
-		case 3:
+		case PROM_BINDING:
 			prom_binding_mutation(generator);
 			break;
-		case 4:
+		case POST_TRANSCRIPT:
 			post_transcript_mutation(generator);
+			break;
+		case INTRA_HILL:
+			intra_hill_mutation(generator);
 			break;
 		default:
 			break;
@@ -209,6 +224,27 @@ void Manager::integrate( int num_step , boost::random::mt19937& generator ,
  */
 dmat Manager::get_curr_state() {
 	return _curr_tissue;
+}
+
+/* Public Method: get_num_cell()
+ * -------------------------------------------------------------------------- 
+ */
+int Manager::get_num_cell() const {
+	return _num_cell;
+}
+
+/* Public Method: get_num_gene()
+ * -------------------------------------------------------------------------- 
+ */
+int Manager::get_num_gene() const {
+	return _genes.size();
+}
+
+/* Public Method: get_num_prot()
+ * -------------------------------------------------------------------------- 
+ */
+int Manager::get_num_prot() const {
+	return _proteins.size();
 }
 
 /* Public Method: print_state()
@@ -320,6 +356,15 @@ void Manager::state_to_file( std::ofstream& file ) {
 	}
 	file << "\n";
 	
+}
+
+bool Manager::has_comb_reac() {
+	for ( int i_reac = 0 ; i_reac < _reactions.size() ; i_reac++ ) {
+		if (_reactions.at(i_reac)->get_type() == COMBINATION) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /* Private Method: react(xi,dx_dt)
@@ -466,7 +511,7 @@ void Manager::add_gene( double prod_rate , double deg_rate ) {
 	
 	/* Steps 2 - 5 */
 	_genes.push_back(new Gene(i_new_gene,i_new_prot,NEXIST,NEXIST,1.0));
-	_proteins.push_back(new Protein(i_new_prot,NEXIST,NEXIST,0.0));
+	_proteins.push_back(new Protein(i_new_prot,NEXIST,NEXIST,0.5));
 	_reactions.push_back(new PromReaction(i_new_gene,i_new_prot,prod_rate));
 	_reactions.push_back(new DegReaction(i_new_prot,deg_rate));
 	
@@ -485,7 +530,9 @@ void Manager::add_gene( double prod_rate , double deg_rate ) {
 	/* Step 8 */
 	_num_mol += 2;
 	
-	std::cout << "GENE ADDITION OCCURRED" << std::endl;
+	if ( _sc_ref->_verbose == 1 ) {
+		std::cout << "GENE ADDITION OCCURRED" << std::endl;
+	}
 	
 }
 
@@ -749,7 +796,9 @@ void Manager::degredation_mutation(  boost::random::mt19937& generator ) {
 		boost::random::uniform_int_distribution<> which_reaction(0,i_deg.size()-1);
 		int i_reac = which_reaction(generator);
 		_reactions.at( i_deg.at(i_reac) )->mutate(generator);
-		std::cout << "DEGREDATION MUTATION OCCURRED (Reaction " << i_deg.at(i_reac) << ")" << std::endl;
+		if ( _sc_ref->_verbose == 1 ) {
+			std::cout << "DEGREDATION MUTATION OCCURRED (Reaction " << i_deg.at(i_reac) << ")" << std::endl;
+		}
 	}
 	
 	
@@ -778,7 +827,9 @@ void Manager::kinetic_mutation( boost::random::mt19937& generator ) {
 		boost::random::uniform_int_distribution<> which_reaction(0,i_ndeg.size()-1);
 		int i_reac = which_reaction(generator);
 		_reactions.at( i_ndeg.at(i_reac) )->mutate(generator);
-		std::cout << "MUTATION OF KINETIC CONSTANT OCCURRED (Reaction " << i_ndeg.at(i_reac) << ")" << std::endl;
+		if ( _sc_ref->_verbose == 1 ) {
+			std::cout << "MUTATION OF KINETIC CONSTANT OCCURRED (Reaction " << i_ndeg.at(i_reac) << ")" << std::endl;
+		}
 	}
 	
 }
@@ -805,9 +856,9 @@ void Manager::prom_binding_mutation( boost::random::mt19937& generator ) {
 		add_PromBindingReac( i_gene , i_prot ,
 							forward_kinetic , backward_kinetic ,
 							production_rate );
-	
-		std::cout << "PROMOTER BINDING MUTATION OCCURRED" << std::endl;
-		
+		if ( _sc_ref->_verbose == 1 ) {
+			std::cout << "PROMOTER BINDING MUTATION OCCURRED" << std::endl;
+		}
 	}
 										
 }
@@ -842,10 +893,46 @@ void Manager::post_transcript_mutation( boost::random::mt19937& generator ) {
 				break;
 		}
 		
-		std::cout << "POST TRANSCRIPTION MUTATION OCCURRED" << std::endl;
-		
+		if ( _sc_ref->_verbose == 1 ) {
+			std::cout << "POST TRANSCRIPTION MUTATION OCCURRED" << std::endl;
+		}
 	}
 	
+}
+
+/* Private Method: post_transcript_mutation(generator)
+ * -------------------------------------------------------------------------- 
+ */
+void Manager::intra_hill_mutation( boost::random::mt19937& generator ) {
+	
+	if ( _proteins.size() == 0 ) return;
+	
+	boost::random::uniform_int_distribution<> is_promotion(0,1);
+	boost::random::uniform_int_distribution<> which_protein(0,_proteins.size()-1);
+	boost::random::uniform_real_distribution<> rand_real(0,2.0);
+	
+	int is_prom = is_promotion(generator);
+	double kinetic = rand_real(generator);
+	double K = rand_real(generator);
+	double cooperativity = rand_real(generator);
+	int actor_protein = which_protein(generator);
+	int receiver_protein = which_protein(generator);
+	
+	switch (is_prom) {
+		case 0:
+			add_HillRepReac(actor_protein,receiver_protein,kinetic,K,cooperativity);
+			break;
+		case 1:
+			add_HillPromReac(actor_protein,receiver_protein,kinetic,K,cooperativity);
+			break;
+		default:
+			break;
+	}
+	
+	if ( _sc_ref->_verbose == 1 ) {
+		std::cout << "HILL MUTATION OCCURRED\n";
+	}
+
 }
 
 /* Private Method: rk4_det_ti(num_step)
@@ -1204,6 +1291,13 @@ void Manager::one_protein_construct() {
 	
 	add_gene(1.0,1.0);
 	
+	initialize();
+}
+
+void Manager::two_protein_construct() {
+	_num_mol = 0;
+	add_gene(0.0,1.0);
+	add_gene(0.0,1.0);
 	initialize();
 }
 

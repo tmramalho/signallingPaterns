@@ -2,14 +2,15 @@
 
 Evolution::Evolution(FitnessFunction *ff) {
 	SettingsCont *sc_ref = SettingsCont::getInstance();
-	int n_agents = sc_ref->_na;
+	_na = sc_ref->_na;
 	_ng = sc_ref->_ng;
+	_mutations_per_gen = sc_ref->_mutations_per_gen;
 	_verbose = sc_ref->_verbose;
 	_ff = ff;
 	
 	if(_verbose) {
 		std::cout << "Running differential evolution with"
-			<< " n_agents " << n_agents << std::endl;
+			<< " n_agents " << _na << std::endl;
 	}
 }
 
@@ -39,41 +40,57 @@ Manager *Evolution::train() {
 	unsigned seed = std::time(0);
 	boost::random::mt19937 generator(seed);
 
-	double min = 1e100;
-	int i_min = 0;
-	double max = 1e100;
-	int i_max = 0;
-	double cr = 0.9;
-	double f = 0.8;
-
 	//evaluation
 	for(int i = 0 ; i < size ; i++) {
-		scores->at(i) =  _ff->run( _pop.at(i) );
+		scores->at(i) =  _ff->run( _pop.at(i) , generator );
 		if(_verbose) {
 			std::cout << "Settler " << i
 				<< " ( " << scores->at(i) << " ) ";
 			std::cout << std::endl;
 		}
 	}
+	
+	double min = scores->at(0);
+	int i_min = 0;
+	double max = scores->at(0);
+	int i_max = 0;
+	
+	for ( int i = 1 ; i < size ; i++ ) {
+		if (scores->at(i) < min) {
+			min = scores->at(i);
+			i_min = i;
+		}
+		if (scores->at(i) > max) {
+			max = scores->at(i);
+			i_max = i;
+		}
+	}
 
 	for(int g = 0 ; g < _ng ; g++) {
-
+		
 		std::cout << "Generation " << g << std::endl;
 
 		//combination and mutation
 		for(int i = 0 ; i < size ; i++) {
 			
 			child = new Manager(_pop.at(i));
-			child->mutate(generator);
 			
-			double child_score = _ff->run(child);
+			for ( int j = 0 ; j < _mutations_per_gen ; j++ ) {
+				child->mutate(generator);
+				if (child->has_comb_reac()) {
+					int l = 2;
+				}
+			}
+			
+			double child_score = _ff->run(child,generator);
 
 			if( child_score < max) {
 				
-				delete _pop.at(i_max);
+				Manager *old = _pop.at(i_max);
 				_pop.at(i_max) = child;
 				scores->at(i_max) = child_score;
-				
+				delete old;
+	
 				if(_verbose == 2) {
 					std::cout << "Changed element " << i
 						<< " ( " << scores->at(i) << " ): " << std::endl;

@@ -31,13 +31,23 @@ private:
 	SettingsCont();
 
 public:
-	int _num_threads, _na, _ng;
-	int _verbose;
-	std::vector< std::vector<int>* > _neighbors;
-	void set_neighbors( std::string neighbor_code );
+	
+	/* Evolution Parameters */
+	int _num_threads, _na, _ng, _mutations_per_gen;
+	std::vector<MutationType> _mutation_types;
+
+	/* Integration Parameters */
+	double _dt, _stochasticity;
 	IntegrationType _mode;
-	double _dt;
-	double _stochasticity;
+	
+	/* Tissue Geometry */
+	std::vector< std::vector<int>* > _neighbors;
+	
+	/* User Interface */
+	int _verbose;
+	
+	/* Public Methods */
+	void set_neighbors( std::string neighbor_code );
 	static SettingsCont *getInstance();
 	//void setParameters(int argc, char *argv[]);
 	~SettingsCont();

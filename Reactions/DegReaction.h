@@ -24,7 +24,7 @@ class DegReaction : public Reaction {
 	
 public:
 	DegReaction( int i_reac , double kinetic );
-	~DegReaction() {}
+	~DegReaction();
 	
 	virtual Reaction* copy();
 	

@@ -52,12 +52,13 @@
 class Reaction {
 
 public:
-	~Reaction() {}
-	
-	virtual Reaction* copy() = 0;
+	virtual ~Reaction();
 	
 	int get_num_part();
 	ReactionType get_type();
+	
+	virtual Reaction* copy() = 0;
+	
 	virtual int get_i_part(int part_num) = 0;
 	
 	virtual void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ) = 0;

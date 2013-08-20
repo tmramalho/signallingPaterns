@@ -14,6 +14,8 @@
  */
 PromReaction::PromReaction( int i_gene , int i_prot , double kinetic ) {
 	
+	std::cout << "PromReaction Specific Constructor\n";
+	
 	_type = PROMOTION;
 	
 	_num_part = 1;
@@ -22,6 +24,10 @@ PromReaction::PromReaction( int i_gene , int i_prot , double kinetic ) {
 	_i_prot = i_prot;
 	_kinetic = kinetic;
 	
+}
+
+PromReaction::~PromReaction() {
+	std::cout << "PromReaction Destructor\n";
 }
 
 Reaction* PromReaction::copy() {

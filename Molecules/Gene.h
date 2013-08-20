@@ -27,7 +27,7 @@ class Gene : public Molecule {
 
 public:
 	Gene( int i_self, int i_product , int i_bound_promoter , int i_root , double init_conc );
-	~Gene() {}
+	~Gene() { std::cout << "Gene Default Destructor\n"; }
 	
 	int get_i_product();
 	int get_i_bound_promoter();

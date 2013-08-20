@@ -14,6 +14,8 @@
  */
 DegReaction::DegReaction( int i_reac , double kinetic ) {
 	
+	std::cout << "DegReaction Specific Constructor\n";
+	
 	_type = DEGRADATION;
 	
 	_num_part = 1;
@@ -21,6 +23,10 @@ DegReaction::DegReaction( int i_reac , double kinetic ) {
 	_i_reac = i_reac;
 	_kinetic = kinetic;
 	
+}
+
+DegReaction::~DegReaction() {
+	std::cout << "DegReaction Destructor\n";
 }
 
 Reaction* DegReaction::copy() {

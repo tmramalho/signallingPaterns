@@ -25,7 +25,7 @@ class Protein : public Molecule {
 
 public:
 	Protein( int i_self , int i_root_zero , int i_root_one , double init_conc );
-	~Protein() {}
+	~Protein() { std::cout << "Protein Destructor\n"; }
 	
 	int get_i_root_zero();
 	int get_i_root_one();

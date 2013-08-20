@@ -17,7 +17,7 @@ public:
 	TempFF() {}
 	virtual ~TempFF() {}
 	
-	virtual double run(Manager *x);
+	virtual double run(Manager *x,boost::random::mt19937& generator);
 	
 };
 

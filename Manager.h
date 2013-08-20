@@ -71,6 +71,9 @@ public:
 	
 	/* Information Retrieval */
 	dmat get_curr_state();
+	int get_num_cell() const;
+	int get_num_gene() const;
+	int get_num_prot() const;
 	
 	/* Display Functions */
 	void print_state();
@@ -79,6 +82,12 @@ public:
 	/* File Writing */
 	void genome_to_file( std::ofstream& file , std::string line_start );
 	void state_to_file( std::ofstream& file );
+	
+	/* Debugging */
+	bool has_comb_reac();
+	
+	
+	void add_gene( double prod_rate , double deg_rate );
 	
 private:
 	
@@ -123,7 +132,7 @@ private:
 	void update_indices( int first_index , int num_insertion );
 	
 	/* Helpers for adding reactions */
-	void add_gene( double prod_rate , double deg_rate );
+	
 	void add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
 							 double forward_kinetic , double backward_kinetic , 
 							 double new_prod_rate );
@@ -141,6 +150,7 @@ private:
 	void kinetic_mutation ( boost::random::mt19937& generator );
 	void prom_binding_mutation ( boost::random::mt19937& generator );
 	void post_transcript_mutation ( boost::random::mt19937& generator );
+	void intra_hill_mutation ( boost::random::mt19937& generator );
 	
 	/* Helpers for integration */
 	void rk4_det_ti ( int num_step );
@@ -153,6 +163,7 @@ private:
 	void collier_delta_notch_construct();
 	void mutation_construct();
 	void one_protein_construct();
+	void two_protein_construct();
 	
 };
 

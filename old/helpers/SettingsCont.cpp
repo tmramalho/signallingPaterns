@@ -10,22 +10,28 @@
 SettingsCont *SettingsCont::_sc_ref = NULL;
 
 SettingsCont::SettingsCont() {
+	
+	/* Evolution Parameters */
 	_num_threads = 2;
-	_verbose = 0;
-	_na = 20;
-	_ng = 50;
+	_na = 5;
+	_ng = 5;
+	_mutations_per_gen = 2;
+	_mutation_types.push_back(DEGRADATION_M);
+	_mutation_types.push_back(KINETIC);
+	_mutation_types.push_back(ADD_GENE);
+	_mutation_types.push_back(INTRA_HILL);
+	
+	/* Integration Parameters */
+	_dt = .001;
+	_mode = RK4_STC_TI;
 	_stochasticity = .01;
 	
-	_neighbors.push_back(new std::vector<int>(1,1));
-	std::vector<int>* addition = new std::vector<int>;
-	addition->push_back(0);
-	addition->push_back(2);
-	_neighbors.push_back(addition);
-	addition = new std::vector<int>(1,1);
-	_neighbors.push_back(addition);
+	/* Tissue Geometry */
+	set_neighbors("1,|0,2,|1,|");
 	
-	_mode = RK4_STC_TI;
-	_dt = .001;
+	/* User Interface */
+	_verbose = 0;
+	
 }
 /*
 void SettingsCont::setParameters(int argc, char *argv[]) {

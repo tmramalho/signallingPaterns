@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 class dvec {
@@ -21,7 +22,6 @@ public:
 	void copy(dvec &other);
 	void copy(dvec *other);
 	double &at(int pos);
-	double get_at(int pos) const;
 	void zero();
 	void set(double num);
 	void set(const dvec &other);
@@ -36,8 +36,10 @@ public:
 	dvec operator-(dvec &other);
 	dvec operator*(double constant);
 	double &operator[] (int pos);
-	double operator* (dvec &other);
+	//double operator* (dvec &other);
 	friend std::ostream &operator <<(std::ostream &output, dvec &vector);
+	
+	void resize( int size );
 	
 	void equals_lin_comb(const dvec &vec1, double c1);
 	void equals_lin_comb(const dvec &vec1, double c1,
@@ -63,9 +65,11 @@ public:
 	
 protected:
 	double getValue(int pos) const;
-	double *_main;
 	
 	unsigned int _size;
+	
+private:
+	double *_main;
 };
 
 #endif
