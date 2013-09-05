@@ -78,7 +78,9 @@ int Protein::get_i_root_one() {
  */
 
 void Protein::update_mol_indices( int first_index , int num_insertion ) {
-	
+	_i_self = update_index ( first_index , num_insertion , _i_self );
+	_i_root_zero = update_index ( first_index, num_insertion , _i_root_zero );
+	_i_root_one = update_index ( first_index, num_insertion , _i_root_one );
 }
 
 /* Public Method: print_info(line_start)
@@ -145,5 +147,4 @@ void Protein::to_file( std::ofstream& file , std::string line_start ) {
 		}
 	}	
 }
-
 

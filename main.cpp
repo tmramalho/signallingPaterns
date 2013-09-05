@@ -68,10 +68,11 @@ using namespace std;
 #endif
 
 void collect_algorithm_data();
+void reaction_deletion_debugging();
 
 int main () {
 	
-	
+	reaction_deletion_debugging();
 	
 	return 0;
 }
@@ -146,4 +147,9 @@ void collect_algorithm_data() {
 	}	
 }
 
+void reaction_deletion_debugging() {
+	Manager *m = new Manager(TWO_PROTEIN);
+	
+	
+}
 

@@ -162,11 +162,8 @@ void HillPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell 
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 void HillPromReaction::update_mol_indices( int first_index , int num_insertion ) {
-	/* Note: Because NEXIST = -1, non-existant participants will never be 
-	 * updated by the insertion procedure as desired.
-	 */		
-	if (_i_promoter >= first_index) _i_promoter += num_insertion;
-	if (_i_promoted >= first_index) _i_promoted += num_insertion;
+	_i_promoter = update_index( first_index , num_insertion , _i_promoter );
+	_i_promoted = update_index( first_index , num_insertion , _i_promoted );
 }
 
 /* Public Method: mutate(generator)

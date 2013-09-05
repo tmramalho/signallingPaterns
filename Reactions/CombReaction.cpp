@@ -197,12 +197,9 @@ void CombReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  */
 
 void CombReaction::update_mol_indices( int first_index , int num_insertion ) {
-	/* Note: Because NEXIST = -1, non-existant participants will never be 
-	 * updated by the insertion procedure as desired.
-	 */
-	if (_i_reac_zero >= first_index) _i_reac_zero += num_insertion;
-	if (_i_reac_one >= first_index) _i_reac_one += num_insertion;
-	if (_i_product >= first_index) _i_product += num_insertion;
+	_i_reac_zero = update_index( first_index , num_insertion , _i_reac_zero );
+	_i_reac_one = update_index( first_index , num_insertion , _i_reac_one );
+	_i_product = update_index( first_index , num_insertion , _i_product );
 }
 
 /* Public Method: mutate(generator)

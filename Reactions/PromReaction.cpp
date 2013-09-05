@@ -154,11 +154,8 @@ void PromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  */
 
 void PromReaction::update_mol_indices( int first_index , int num_insertion ) {
-	/* Note: Because NEXIST = -1, non-existant participants will never be 
-	 * updated by the insertion procedure as desired.
-	 */	
-	if (_i_gene >= first_index) _i_gene += num_insertion;
-	if (_i_prot >= first_index) _i_prot += num_insertion;
+	_i_gene = update_index( first_index , num_insertion , _i_gene );
+	_i_prot = update_index( first_index , num_insertion , _i_prot );
 }
 
 /* Public Method: mutate(generator)

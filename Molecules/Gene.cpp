@@ -89,7 +89,10 @@ int Gene::get_i_root() {
 }
 
 void Gene::update_mol_indices( int first_index , int num_insertion ) {
-	
+	_i_self = update_index( first_index , num_insertion , _i_self );
+	_i_product = update_index( first_index , num_insertion , _i_product );
+	_i_bound_promoter = update_index( first_index , num_insertion , _i_bound_promoter );
+	_i_root = update_index( first_index , num_insertion , _i_root );
 }
  
 /* Public Method: print_info(line_start)

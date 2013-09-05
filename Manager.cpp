@@ -967,11 +967,66 @@ void Manager::remove_reaction( int i_reac ) {
 	reacs_to_delete.insert(i_reac);
 	reac_removal_cascade(i_reac,reacs_to_delete,genes_to_delete,prots_to_delete);
 	
-	delete _reactions.at(i_reac);
-	for ( int i = i_reac + 1 ; i < _reactions.size() ; i++ ) {
-		_reactions.at(i-1) = _reactions.at(i);
+	/* Delete reactions */
+	while (!reacs_to_delete.empty()) {
+		int i_deletion = *reacs_to_delete.begin();
+		Operations::UpdateIndex updater(i_deletion,-1);
+		for ( int i_gene = 0 ; i_gene < _genes.size() ; i_gene++ ) {
+			_genes.at(i_gene)->update_reac_indices(i_deletion,-1);
+		}
+		for ( int i_prot = 0 ; i_prot < _proteins.size() ; i_prot++ ) {
+			_proteins.at(i_prot)->update_reac_indices(i_deletion,-1);
+		}
+		std::set<int> updates;
+		for (std::set<int>::iterator it = reacs_to_delete.begin(); it != reacs_to_delete.end(); it++) {
+			updates.insert(updater(*it));
+		}
+		delete _reactions.at(i_deletion);
+		reacs_to_delete = updates;
+		reacs_to_delete.erase(NEXIST);
+		for ( int i = i_deletion + 1 ; i < _reactions.size() ; i++ ) {
+			_reactions.at(i-1) = _reactions.at(i);
+		}
+		_reactions.pop_back();
+		
 	}
-	_reactions.pop_back();
+	
+	/* Delete genes */
+	while (!genes_to_delete.empty()) {
+		int i_deletion = *genes_to_delete.begin();
+		update_mol_indices(i_deletion, -1);
+		std::set<int> updates;
+		Operations::UpdateIndex updater(i_deletion,-1);
+		for (std::set<int>::iterator it = genes_to_delete.begin(); it != genes_to_delete.end(); it++) {
+			updates.insert(updater(*it));
+		}
+		delete _genes.at(i_deletion);
+		for	( int i = i_deletion +1 ; i < _genes.size() ; i++ ) {
+			_genes.at(i-1) = _genes.at(i);
+		}
+		_genes.pop_back();
+		genes_to_delete = updates;
+		genes_to_delete.erase(NEXIST);
+	}
+	
+	/* Delete proteins */
+	while (!prots_to_delete.empty()) {
+		int i_deletion = *prots_to_delete.begin();
+		int i_deletion_as_mol = i_deletion + _genes.size();
+		update_mol_indices(i_deletion_as_mol, -1);
+		std::set<int> updates;
+		Operations::UpdateIndex updater(i_deletion,-1);
+		for (std::set<int>::iterator it = prots_to_delete.begin(); it != prots_to_delete.end(); it++) {
+			updates.insert(updater(*it));
+		}
+		delete _proteins.at(i_deletion);
+		for (int i = i_deletion+1; i < _proteins.size() ; i++) {
+			_proteins.at(i-1) = _proteins.at(i);
+		}
+		_proteins.pop_back();
+		prots_to_delete = updates;
+		prots_to_delete.erase(NEXIST);
+	}
 
 }
 

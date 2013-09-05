@@ -163,11 +163,8 @@ void HillRepReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 void HillRepReaction::update_mol_indices( int first_index , int num_insertion ) {
-	/* Note: Because NEXIST = -1, non-existant participants will never be 
-	 * updated by the insertion procedure as desired.
-	 */		
-	if (_i_repressor >= first_index) _i_repressor += num_insertion;
-	if (_i_repressed >= first_index) _i_repressed += num_insertion;
+	_i_repressor = update_index( first_index , num_insertion , _i_repressor );
+	_i_repressed = update_index( first_index , num_insertion , _i_repressed );
 }
 
 /* Public Method: mutate(generator)

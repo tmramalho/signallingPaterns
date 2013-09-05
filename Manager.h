@@ -202,6 +202,7 @@ private:
 	void two_protein_construct();
 	void best_genome_construct();
 	
+	
 };
 
 

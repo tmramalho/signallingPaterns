@@ -91,6 +91,9 @@ protected:
 	
 	int _num_part;
 	
+	/* Update Index Helper */
+	int update_index ( int first_index , int num_insertion , int index );
+	
 private:
 	Reaction(Reaction *newOne);
 	

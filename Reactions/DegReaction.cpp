@@ -145,10 +145,7 @@ void DegReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  */
 
 void DegReaction::update_mol_indices( int first_index , int num_insertion ) {
-	/* Note: Because NEXIST = -1, non-existant participants will never be 
-	 * updated by the insertion procedure as desired.
-	 */	
-	if (_i_reac >= first_index) _i_reac += num_insertion;
+	_i_reac = update_index( first_index , num_insertion , _i_reac );
 }
 
 /* Public Method: mutate(generator)

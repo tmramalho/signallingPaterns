@@ -173,11 +173,8 @@ void LatPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  */
 
 void LatPromReaction::update_mol_indices( int first_index , int num_insertion ) {
-	/* Note: Because NEXIST = -1, non-existant participants will never be 
-	 * updated by the insertion procedure as desired.
-	 */	
-	if (_i_promoted_by_neighbors >= first_index) _i_promoted_by_neighbors += num_insertion;
-	if (_i_promoting_neighbors >= first_index) _i_promoting_neighbors += num_insertion;
+	_i_promoted_by_neighbors = update_index( first_index , num_insertion , _i_promoted_by_neighbors );
+	_i_promoting_neighbors = update_index( first_index , num_insertion , _i_promoting_neighbors );
 }
 
 /* Public Method: mutate(generator)

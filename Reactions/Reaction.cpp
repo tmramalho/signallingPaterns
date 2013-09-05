@@ -51,3 +51,12 @@ int Reaction::get_num_part() const {
 ReactionType Reaction::get_type() {
 	return _type;
 }
+
+int Reaction::update_index( int first_index , int num_insertion , int index ) {
+	if (index < first_index) return index;
+	else if (num_insertion >= 0) return index + num_insertion;
+	else {
+		if (index < first_index - num_insertion) return NEXIST;
+		else return index - num_insertion;
+	}	
+}

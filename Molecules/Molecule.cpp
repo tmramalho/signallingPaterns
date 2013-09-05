@@ -47,13 +47,12 @@ double Molecule::get_init_conc() {return _init_conc;}
  */
 void Molecule::add_reaction( int i_reac ) {_reactions.insert(i_reac);}
 
-template <typename UpdateClass>
-void Molecule::update_reac_indices( UpdateClass update_index ) {
+void Molecule::update_reac_indices( int first_index , int num_insertion ) {
 	
 	std::set<int> updates;
-	
+	Operations::UpdateIndex updater(first_index,num_insertion);
 	for (std::set<int>::iterator it = _reactions.begin(); it != _reactions.end(); it++) {
-		updates.insert(update_index(*it));
+		updates.insert(updater(*it));
 	}
 	
 	_reactions = updates;
@@ -63,3 +62,12 @@ void Molecule::update_reac_indices( UpdateClass update_index ) {
 std::set<int>::iterator Molecule::reacs_begin() const {return _reactions.begin();}
 
 std::set<int>::iterator Molecule::reacs_end() const {return _reactions.end();}
+
+int Molecule::update_index( int first_index , int num_insertion , int index ) {
+	if (index < first_index) return index;
+	else if (num_insertion >= 0) return index + num_insertion;
+	else {
+		if (index < first_index - num_insertion) return NEXIST;
+		else return index - num_insertion;
+	}	
+}

@@ -174,12 +174,9 @@ void PromBindingReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_ce
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 void PromBindingReaction::update_mol_indices( int first_index , int num_insertion ) {
-	/* Note: Because NEXIST = -1, non-existant participants will never be 
-	 * updated by the insertion procedure as desired.
-	 */		
-	if (_i_root_gene >= first_index) _i_root_gene += num_insertion;
-	if (_i_promoted_gene >= first_index) _i_promoted_gene += num_insertion;
-	if (_i_bound_protein >= first_index) _i_bound_protein += num_insertion;
+	_i_root_gene = update_index( first_index , num_insertion , _i_root_gene );
+	_i_bound_protein = update_index( first_index , num_insertion , _i_bound_protein );
+	_i_promoted_gene = update_index( first_index , num_insertion , _i_promoted_gene );
 }
 
 /* Public Method: mutate(generator)

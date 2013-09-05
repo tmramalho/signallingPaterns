@@ -31,6 +31,7 @@
 # include "../Reactions/Reaction.h"
 # include "../old/helpers/SettingsCont.h"
 # include "../nexist.cpp"
+# include "../Operations.h"
 
 using namespace std;
 
@@ -45,8 +46,7 @@ public:
 	void add_reaction( int i_reac );
 	
 	virtual void update_mol_indices( int first_index , int num_insertion ) = 0;
-	template <class UpdateClass>
-	void update_reac_indices( UpdateClass update_index );
+	void update_reac_indices( int first_index , int num_insertion );
 	
 	virtual void print_info ( std::string line_start ) = 0;
 	virtual void to_file (ofstream& file,std::string line_start) = 0;
@@ -76,6 +76,9 @@ protected:
 	 *
 	 */
 	std::set<int> _reactions;
+	
+	/* Index Update Helper */
+	int update_index ( int first_index , int num_insertion , int index );
 	
 private:
 	Molecule& operator=( const Molecule& rhs );
