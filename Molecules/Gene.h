@@ -18,24 +18,27 @@
  *
  */
 
-# include "Molecule.h"
-
 #ifndef GENE_H
 #define GENE_H
+
+# include "Molecule.h"
 
 class Gene : public Molecule {
 
 public:
 	Gene( int i_self, int i_product , int i_bound_promoter , int i_root , double init_conc );
-	~Gene() { std::cout << "Gene Default Destructor\n"; }
+	Gene( const Gene& other );
+	Gene( std::ifstream& file );
+	~Gene() {}
 	
 	int get_i_product();
 	int get_i_bound_promoter();
 	int get_i_root();
+	
+	void update_mol_indices( int first_index , int num_insertion );
 
-	virtual void update_indices( int first_index , int num_insertions );
-	virtual void print_info ( std::string line_start );
-	virtual void to_file ( std::ofstream& file , std::string line_start);
+	void print_info ( std::string line_start );
+	void to_file ( std::ofstream& file , std::string line_start);
 	
 protected:
 	
@@ -55,6 +58,14 @@ protected:
 private:
 	Gene(Gene* newOne) {}
 	Gene& operator=( const Gene& rhs ) {return *this;}
+	
+	/* File Format Variables */
+	static const int NUM_LINE = 5;
+	static const int I_SELF_LINE = 0;
+	static const int I_PRODUCT_LINE = 1;
+	static const int I_BOUND_PROMOTER_LINE = 2;
+	static const int I_ROOT_LINE = 3;
+	static const int INIT_CONC_LINE = 4; // -1 indicates it is not in output
 	
 };
 

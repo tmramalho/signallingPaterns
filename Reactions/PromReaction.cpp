@@ -14,7 +14,7 @@
  */
 PromReaction::PromReaction( int i_gene , int i_prot , double kinetic ) {
 	
-	std::cout << "PromReaction Specific Constructor\n";
+	//std::cout << "PromReaction Specific Constructor\n";
 	
 	_type = PROMOTION;
 	
@@ -26,8 +26,31 @@ PromReaction::PromReaction( int i_gene , int i_prot , double kinetic ) {
 	
 }
 
+PromReaction::PromReaction( std::ifstream& file ) {
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_GENE_LINE:
+				file.ignore(256,':');
+				file >> _i_gene;
+				break;
+			case I_PROT_LINE:
+				file.ignore(256,':');
+				file >> _i_prot;
+				break;
+			case KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _kinetic;
+				break;
+			default:
+				break;
+		}
+	}
+	
+}
+
 PromReaction::~PromReaction() {
-	std::cout << "PromReaction Destructor\n";
+	//std::cout << "PromReaction Destructor\n";
 }
 
 Reaction* PromReaction::copy() {
@@ -44,7 +67,7 @@ Reaction* PromReaction::copy() {
  * Returns NEXIST for part_num != 0.
  */
 
-int PromReaction::get_i_part( int part_num ) {
+int PromReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:
 			return _i_prot;
@@ -53,6 +76,14 @@ int PromReaction::get_i_part( int part_num ) {
 			return NEXIST;
 			break;
 	}
+}
+
+int PromReaction::get_i_dependent_molecule() const {
+	/* proteins can be promoted by Hill Reactions with other proteins.
+	 * Thus, there is a question whether the protein should be 
+	 * considered dependent on the gene.
+	 */
+	return _i_prot;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)
@@ -102,7 +133,7 @@ void PromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 	double det_flow = _kinetic * curr_tissue.at( i_curr_cell , _i_gene ); 
 	
 	double rand = dist(generator);
-	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	
@@ -122,7 +153,7 @@ void PromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void PromReaction::update_indices( int first_index , int num_insertion ) {
+void PromReaction::update_mol_indices( int first_index , int num_insertion ) {
 	/* Note: Because NEXIST = -1, non-existant participants will never be 
 	 * updated by the insertion procedure as desired.
 	 */	
@@ -160,10 +191,23 @@ void PromReaction::mutate ( boost::random::mt19937& generator ) {
  */
 void PromReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "Reaction Type: Promotion Reaction" << std::endl;
-	std::cout << line_start << "Index of Gene: " << _i_gene << std::endl;
-	std::cout << line_start << "Index of Produced Protein: " << _i_prot << std::endl;
-	std::cout << line_start << "Rate of Production: " << _kinetic << std::endl;
+	std::cout << line_start << "Reaction Type: Promotion Reaction\n";
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_GENE_LINE:
+				std::cout << line_start << "Index of Gene: " << _i_gene << "\n";
+				break;
+			case I_PROT_LINE:
+				std::cout << line_start << "Index of Produced Protein: " << _i_prot << "\n";
+				break;
+			case KINETIC_LINE:
+				std::cout << line_start << "Rate of Production: " << _kinetic << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 	
 }
 
@@ -173,9 +217,22 @@ void PromReaction::print_info ( std::string line_start ) {
 void PromReaction::to_file ( std::ofstream& file , std::string line_start ) {
 
 	file << line_start << "Reaction Type: Promotion Reaction\n";
-	file << line_start << "Index of Gene: " << _i_gene << "\n";
-	file << line_start << "Index of Produced Protein: " << _i_prot << "\n";
-	file << line_start << "Rate of Production: " << _kinetic << "\n";
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_GENE_LINE:
+				file << line_start << "Index of Gene: " << _i_gene << "\n";
+				break;
+			case I_PROT_LINE:
+				file << line_start << "Index of Produced Protein: " << _i_prot << "\n";
+				break;
+			case KINETIC_LINE:
+				file << line_start << "Rate of Production: " << _kinetic << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 	
 }
 

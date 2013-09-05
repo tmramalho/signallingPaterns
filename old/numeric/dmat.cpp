@@ -28,7 +28,7 @@ dmat::dmat( unsigned int num_row , unsigned int num_col ) : dvec(num_row*num_col
 }
 
 dmat::~dmat() {
-	std::cout << "dmat destructor\n";
+	//std::cout << "dmat destructor\n";
 }
 
 double &dmat::at( int row , int col ) {

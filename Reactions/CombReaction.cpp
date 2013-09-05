@@ -28,6 +28,37 @@ CombReaction::CombReaction( int i_reac_zero , int i_reac_one , int i_product ,
 	
 }
 
+CombReaction::CombReaction( std::ifstream& file ) {
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_REAC_ZERO_LINE:
+				file.ignore(256,':');
+				file >> _i_reac_zero;
+				break;
+			case I_REAC_ONE_LINE:
+				file.ignore(256,':');
+				file >> _i_reac_one;
+				break;
+			case I_PRODUCT_LINE:
+				file.ignore(256,':');
+				file >> _i_product;
+				break;
+			case FORWARD_KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _forward_kinetic;
+				break;
+			case BACKWARD_KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _backward_kinetic;
+				break;
+			default:
+				break;
+		}
+	}
+	
+}
+
 /* Public method: copy()
  * -------------------------------------------------------------------------- 
  */
@@ -47,7 +78,7 @@ Reaction *CombReaction::copy() {
  *
  * Returns NEXIST for part_num != 0,1, or 2.
  */
-int CombReaction::get_i_part( int part_num ) {
+int CombReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:
 			return _i_reac_zero;
@@ -62,6 +93,10 @@ int CombReaction::get_i_part( int part_num ) {
 			return NEXIST;
 			break;
 	}
+}
+
+int CombReaction::get_i_dependent_molecule() const {
+	return _i_product;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)
@@ -127,16 +162,17 @@ void CombReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 	/* dx = dt * f(x) + dt * (g(x) * rand * sqrt(q/dt)) */
 	/* This implementation has g(x) = det_flow */
 	
+	double reac_zero_conc = curr_tissue.at(i_curr_cell,_i_reac_zero);
+	double reac_one_conc = curr_tissue.at(i_curr_cell,_i_reac_one);
+	double prod_conc = curr_tissue.at(i_curr_cell,_i_product);
+	
 	double det_flow = 
-	_forward_kinetic 
-	* curr_tissue.at(i_curr_cell,_i_reac_zero)
-	* curr_tissue.at(i_curr_cell,_i_reac_one) 
+	_forward_kinetic * reac_zero_conc * reac_one_conc
 	-
-	_backward_kinetic 
-	* curr_tissue.at(i_curr_cell,_i_product);
+	_backward_kinetic * prod_conc;
 	
 	double rand = dist(generator);
-	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	
@@ -160,7 +196,7 @@ void CombReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void CombReaction::update_indices( int first_index , int num_insertion ) {
+void CombReaction::update_mol_indices( int first_index , int num_insertion ) {
 	/* Note: Because NEXIST = -1, non-existant participants will never be 
 	 * updated by the insertion procedure as desired.
 	 */
@@ -212,12 +248,29 @@ void CombReaction::mutate( boost::random::mt19937& generator ) {
  */
 void CombReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "ReactionType: Combination Reaction" << std::endl;
-	std::cout << line_start << "Index of First Constituent Protein: " << _i_reac_zero << std::endl;
-	std::cout << line_start << "Index of Second Constituent Protein: " << _i_reac_one << std::endl;
-	std::cout << line_start << "Index of Produced Complex: " << _i_product << std::endl;
-	std::cout << line_start << "Foward Kinetic (binding): " << _forward_kinetic << std::endl;
-	std::cout << line_start << "Backward Kinetic (separation): " << _backward_kinetic << std::endl;
+	std::cout << line_start << "ReactionType: Combination Reaction\n";
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_REAC_ZERO_LINE:
+				std::cout << line_start << "Index of First Constituent Protein: " << _i_reac_zero << "\n";
+				break;
+			case I_REAC_ONE_LINE:
+				std::cout << line_start << "Index of Second Constituent Protein: " << _i_reac_one << "\n";
+				break;
+			case I_PRODUCT_LINE:
+				std::cout << line_start << "Index of Produced Complex: " << _i_product << "\n";
+				break;
+			case FORWARD_KINETIC_LINE:
+				std::cout << line_start << "Foward Kinetic (binding): " << _forward_kinetic << "\n";
+				break;
+			case BACKWARD_KINETIC_LINE:
+				std::cout << line_start << "Backward Kinetic (separation): " << _backward_kinetic << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 
 }
 
@@ -227,11 +280,28 @@ void CombReaction::print_info ( std::string line_start ) {
 void CombReaction::to_file ( std::ofstream& file , std::string line_start ) {
 	
 	file << line_start << "ReactionType: Combination Reaction\n";
-	file << line_start << "Index of First Constituent Protein:\n";
-	file << line_start << "Index of Second Constituent Protein:\n";
-	file << line_start << "Index of Produced Complex: " << _i_product << "\n";
-	file << line_start << "Foward Kinetic (binding): " << _forward_kinetic << "\n";
-	file << line_start << "Backward Kinetic (separation): " << _backward_kinetic << "\n";
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_REAC_ZERO_LINE:
+				file << line_start << "Index of First Constituent Protein: " << _i_reac_zero << "\n";
+				break;
+			case I_REAC_ONE_LINE:
+				file << line_start << "Index of Second Constituent Protein: " << _i_reac_one << "\n";
+				break;
+			case I_PRODUCT_LINE:
+				file << line_start << "Index of Produced Complex: " << _i_product << "\n";
+				break;
+			case FORWARD_KINETIC_LINE:
+				file << line_start << "Foward Kinetic (binding): " << _forward_kinetic << "\n";
+				break;
+			case BACKWARD_KINETIC_LINE:
+				file << line_start << "Backward Kinetic (separation): " << _backward_kinetic << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 	
 }
 

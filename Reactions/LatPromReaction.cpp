@@ -12,22 +12,49 @@
  * -------------------------------------------------------------------------- 
  * Constructs LatPromReaction, reading in data passed to it.
  */
-LatPromReaction::LatPromReaction( int i_promoted_by_neighbors , int i_promoting_neighbors ,
+LatPromReaction::LatPromReaction( int i_promoting_neighbors , int i_promoted_by_neighbors ,
 								 double kinetic , double K ) {
 	
 	_type = LATERAL_PROMOTION;
 	
 	_num_part = 1;
 	
-	_i_promoting_neighbors = i_promoting_neighbors;
 	_i_promoted_by_neighbors = i_promoted_by_neighbors;
+	_i_promoting_neighbors = i_promoting_neighbors;
 	_kinetic = kinetic;
 	_K = K;
 	
 }
 
+LatPromReaction::LatPromReaction( std::ifstream& file ) {
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_PROMOTED_BY_NEIGHBORS_LINE:
+				file.ignore(256,':');
+				file >> _i_promoted_by_neighbors;
+				break;
+			case I_PROMOTING_NEIGHBORS_LINE:
+				file.ignore(256,':');
+				file >> _i_promoting_neighbors;
+				break;
+			case KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _kinetic;
+				break;
+			case K_LINE:
+				file.ignore(256,':');
+				file >> _K;
+				break;
+			default:
+				break;
+		}
+	}
+	
+}
+
 Reaction* LatPromReaction::copy() {
-	return new LatPromReaction(_i_promoted_by_neighbors,_i_promoting_neighbors,_kinetic,_K);
+	return new LatPromReaction(_i_promoting_neighbors,_i_promoted_by_neighbors,_kinetic,_K);
 }
 
 /* Public method: get_i_part(part_num)
@@ -40,7 +67,7 @@ Reaction* LatPromReaction::copy() {
  *
  * Returns NEXIST for part_num != 0.
  */
-int LatPromReaction::get_i_part( int part_num ) {
+int LatPromReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:
 			return _i_promoted_by_neighbors;
@@ -49,6 +76,10 @@ int LatPromReaction::get_i_part( int part_num ) {
 			return NEXIST;
 			break;
 	}
+}
+
+int LatPromReaction::get_i_dependent_molecule() const {
+	return NEXIST;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)
@@ -75,7 +106,7 @@ void LatPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell )
 	avg_neighbor_conc = neighbor_sum/_sc_ref->_neighbors.at(i_curr_cell)->size();
 	
 	/* Compute dx_dt */
-	double r = _kinetic * (pow(avg_neighbor_conc,2))/(_K+pow(avg_neighbor_conc,2));
+	double r = _kinetic * (pow(avg_neighbor_conc,5))/(_K+pow(avg_neighbor_conc,5));
 	dx_dt.at( i_curr_cell , _i_promoted_by_neighbors ) += r;
 	
 }
@@ -118,10 +149,10 @@ void LatPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 	/* dx = dt * f(x) + dt * (g(x) * rand * sqrt(q/dt)) */
 	/* This implementation has g(x) = 1 */
 	
-	double det_flow = _kinetic * (pow(avg_neighbor_conc,2))/(_K+pow(avg_neighbor_conc,2)); 
+	double det_flow = _kinetic * (pow(avg_neighbor_conc,5))/(_K+pow(avg_neighbor_conc,5)); 
 	
 	double rand = dist(generator);
-	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	
@@ -141,7 +172,7 @@ void LatPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void LatPromReaction::update_indices( int first_index , int num_insertion ) {
+void LatPromReaction::update_mol_indices( int first_index , int num_insertion ) {
 	/* Note: Because NEXIST = -1, non-existant participants will never be 
 	 * updated by the insertion procedure as desired.
 	 */	
@@ -191,12 +222,26 @@ void LatPromReaction::mutate ( boost::random::mt19937& generator ) {
  */
 void LatPromReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "Reaction Type: Lateral Promotion Reaction" << std::endl;
-	std::cout << line_start << "Index of Protein Promoted by Neighbors: " << _i_promoted_by_neighbors << std::endl;
-	std::cout << line_start << "Index of Protein Promoting its Neighbors: " << _i_promoting_neighbors << std::endl;
-	std::cout << line_start << "Kinetic Rate of Reaction: " << _kinetic << std::endl;
-	std::cout << line_start << "K: " << _K << std::endl;
+	std::cout << line_start << "Reaction Type: Lateral Promotion Reaction" << "\n";
 	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_PROMOTED_BY_NEIGHBORS_LINE:
+				std::cout << line_start << "Index of Protein Promoted by Neighbors: " << _i_promoted_by_neighbors << "\n";
+				break;
+			case I_PROMOTING_NEIGHBORS_LINE:
+				std::cout << line_start << "Index of Protein Promoting its Neighbors: " << _i_promoting_neighbors << "\n";
+				break;
+			case KINETIC_LINE:
+				std::cout << line_start << "Kinetic Rate of Reaction: " << _kinetic << "\n";
+				break;
+			case K_LINE:
+				std::cout << line_start << "K: " << _K << "\n";
+				break;
+			default:
+				break;
+		}
+	}	
 }
 
 /* Public Method: to_file(file,line_start)
@@ -205,10 +250,25 @@ void LatPromReaction::print_info ( std::string line_start ) {
 void LatPromReaction::to_file ( std::ofstream& file , std::string line_start ) {
 	
 	file << line_start << "Reaction Type: Lateral Promotion Reaction" << "\n";
-	file << line_start << "Index of Protein Promoted by Neighbors: " << _i_promoted_by_neighbors << "\n";
-	file << line_start << "Index of Protein Promoting its Neighbors: " << _i_promoting_neighbors << "\n";
-	file << line_start << "Kinetic Rate of Reaction: " << _kinetic << "\n";
-	file << line_start << "K: " << _K << "\n";
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_PROMOTED_BY_NEIGHBORS_LINE:
+				file << line_start << "Index of Protein Promoted by Neighbors: " << _i_promoted_by_neighbors << "\n";
+				break;
+			case I_PROMOTING_NEIGHBORS_LINE:
+				file << line_start << "Index of Protein Promoting its Neighbors: " << _i_promoting_neighbors << "\n";
+				break;
+			case KINETIC_LINE:
+				file << line_start << "Kinetic Rate of Reaction: " << _kinetic << "\n";
+				break;
+			case K_LINE:
+				file << line_start << "K: " << _K << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 	
 }
 

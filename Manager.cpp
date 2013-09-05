@@ -34,6 +34,9 @@ Manager::Manager( ConstructionMethod m ) {
 		else if (m == TWO_PROTEIN) {
 			two_protein_construct();
 		}
+		else if (m == BEST_GENOME) {
+			best_genome_construct();
+		}
 		else { throw -1; }
 	}
 	catch ( int i ) {
@@ -61,6 +64,16 @@ Manager::Manager( Manager *newOne ) {
 	_curr_tissue.resize(_num_cell, _num_mol);
 	_i_tissue.resize(_num_cell,_num_mol);
 	
+	for ( int i = 0 ; i < newOne->_evaluation_generations.size() ; i++ ) {
+		_evaluation_generations.push_back(newOne->_evaluation_generations.at(i));
+	}
+	for ( int i = 0 ; i < newOne->_evaluation_scores.size() ; i++ ) {
+		_evaluation_scores.push_back(newOne->_evaluation_scores.at(i));
+	}
+	for ( int i = 0 ; i < newOne->_mutation_generations.size() ; i++ ) {
+		_mutation_generations.push_back(newOne->_mutation_generations.at(i));
+	}
+	
 	/* We do not give Gene a public copy constructor. We instead copy 
 	 * manually
 	 */
@@ -84,6 +97,64 @@ Manager::Manager( Manager *newOne ) {
 	
 }
 
+Manager::Manager( std::ifstream& file ) {
+	
+	_sc_ref = SettingsCont::getInstance();
+	_time = 0.0;
+	_num_cell = _sc_ref->_neighbors.size();
+	
+	char temp[256];
+	file.getline(temp,256); // GENES:
+	while ( strncmp("PROTEINS:",temp,9) != 0 ) {
+		if ( strncmp(temp, "Gene",4) == 0 ) {
+			_genes.push_back( new Gene(file) );
+		}
+		file.getline(temp,256);
+	}
+	
+	while ( strncmp(temp,"REACTIONS:",9) != 0 ) {
+		if ( strncmp(temp,"Protein",7) == 0 ) {
+			_proteins.push_back( new Protein(file) );
+		}
+		file.getline(temp,256);
+	}
+	
+	while (!file.eof()) {
+		if ( strncmp(temp,"Reaction",8) == 0 ) {
+			file.ignore(256,':');
+			file.getline(temp,256);
+			if ( strncmp(temp," Combination Reaction",21) == 0 ) {
+				_reactions.push_back( new CombReaction(file) );
+			}
+			else if ( strncmp(temp," Degradation Reaction",21) == 0 ) {
+				_reactions.push_back( new DegReaction(file) );
+			}
+			else if ( strncmp(temp," Promotion Reaction",19) == 0 ) {
+				_reactions.push_back( new PromReaction(file) );
+			}
+			else if ( strncmp(temp," Lateral Promotion Reaction",27) == 0 ) {
+				_reactions.push_back( new LatPromReaction(file) );
+			}
+			else if ( strncmp(temp," Promoter Binding Reaction",26) == 0 ) {
+				_reactions.push_back( new PromBindingReaction(file) );
+			}
+			else if ( strncmp(temp," Hill Promotion Reaction",24) == 0 ) {
+				_reactions.push_back( new HillPromReaction(file) );
+			}
+			else if ( strncmp(temp," Hill Repression Reaction",25) == 0 ) {
+				_reactions.push_back( new HillRepReaction(file) );
+			}
+			else if (strncmp(temp," Lateral Repression Reaction",28) == 0 ) {
+				_reactions.push_back( new LatRepReaction(file) );
+			}
+		}
+		file.getline(temp,256);
+	}
+	
+	_num_mol = _genes.size() + _proteins.size();
+	
+}
+
 /* Destructor: ~Manager() 
  * -------------------------------------------------------------------------- 
  */
@@ -94,8 +165,13 @@ Manager::~Manager() {
 	for ( int i_gene = 0 ; i_gene < num_gene ; i_gene++ ) {
 		delete _genes.at(i_gene);
 	}
-	_proteins.erase(_proteins.begin(),_proteins.end());
-	_reactions.erase(_reactions.begin(),_reactions.end());
+	for ( int i_prot = 0 ; i_prot < num_prot ; i_prot++ ) {
+		delete _proteins.at(i_prot);
+	}
+	for ( int i_reac = 0 ; i_reac < num_reac ; i_reac++ ) {
+		delete _reactions.at(i_reac);
+	}
+	_num_mol = -100;
 }
 
 /* Constructor: mutate(generator) 
@@ -116,13 +192,11 @@ Manager::~Manager() {
  * 
  */
 void Manager::mutate( boost::random::mt19937& generator ) {
-	
 	int num_mutation = _sc_ref->_mutation_types.size();
-	
 	boost::random::uniform_int_distribution<> which_mutation(0,num_mutation-1);
 	int choice = which_mutation(generator);
-	
-	switch (_sc_ref->_mutation_types.at(choice)) {
+	int type = _sc_ref->_mutation_types.at(choice);
+	switch (type) {
 		case DEGRADATION_M:
 			degredation_mutation(generator);
 			break;
@@ -130,7 +204,7 @@ void Manager::mutate( boost::random::mt19937& generator ) {
 			kinetic_mutation(generator);
 			break;
 		case ADD_GENE:
-			add_gene(0.0,1.0);
+			add_gene(1.0,1.0);
 			break;
 		case PROM_BINDING:
 			prom_binding_mutation(generator);
@@ -138,15 +212,48 @@ void Manager::mutate( boost::random::mt19937& generator ) {
 		case POST_TRANSCRIPT:
 			post_transcript_mutation(generator);
 			break;
-		case INTRA_HILL:
-			intra_hill_mutation(generator);
+		case ADD_HILL:
+			add_hill_mutation(generator);
 			break;
+		case REMOVAL:
+			removal_mutation(generator);
 		default:
 			break;
 	}
 	
 }
 
+void Manager::mutate( boost::random::mt19937& generator , int generation ) {
+	int num_mutation = _sc_ref->_mutation_types.size();
+	boost::random::uniform_int_distribution<> which_mutation(0,num_mutation-1);
+	int choice = which_mutation(generator);
+	int type = _sc_ref->_mutation_types.at(choice);
+	switch (type) {
+		case DEGRADATION_M:
+			degredation_mutation(generator);
+			break;
+		case KINETIC:
+			kinetic_mutation(generator);
+			break;
+		case ADD_GENE:
+			add_gene(1.0,1.0);
+			break;
+		case PROM_BINDING:
+			prom_binding_mutation(generator);
+			break;
+		case POST_TRANSCRIPT:
+			post_transcript_mutation(generator);
+			break;
+		case ADD_HILL:
+			add_hill_mutation(generator);
+			break;
+		case REMOVAL:
+			removal_mutation(generator);
+		default:
+			break;
+	}
+	_mutation_generations.push_back(generation);
+}
 
 /* Public Method: initialize()
  * -------------------------------------------------------------------------- 
@@ -158,8 +265,10 @@ void Manager::initialize() {
 	resize_dmats();
 	_time = 0.0;
 	
+	int genes_size = _genes.size();
+	
 	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
-		for ( int i_gene = 0 ; i_gene < _genes.size() ; i_gene++ ) {
+		for ( int i_gene = 0 ; i_gene < genes_size ; i_gene++ ) {
 			Gene* gene_ref = _genes.at(i_gene);
 			_i_tissue.at(i_cell,gene_ref->get_i_self()) = gene_ref->get_init_conc();
 			_curr_tissue.at(i_cell,gene_ref->get_i_self()) = gene_ref->get_init_conc();
@@ -219,11 +328,22 @@ void Manager::integrate( int num_step , boost::random::mt19937& generator ,
 	}
 }
 
-/* Public Method: get_curr_state()
+/* Public Method: get_curr_state(curr_state)
  * -------------------------------------------------------------------------- 
+ * We copy _curr_state into the curr_state parameter passed by reference 
+ * instead of returning a dmat to avoid shallow copying due to copy elision 
+ * or other unwanted procedures used by the compiler to return a dmat object
+ * without using copy constructor or assignment operator.
  */
-dmat Manager::get_curr_state() {
-	return _curr_tissue;
+void Manager::get_curr_state(dmat& curr_state) {
+	int num_row = _curr_tissue.get_num_row();
+	int num_col = _curr_tissue.get_num_col();
+	curr_state.resize( num_row , num_col );
+	for ( int row = 0 ; row < num_row ; row++ ) {
+		for ( int col = 0 ; col < num_col ; col++ ) {
+			curr_state.at(row,col) = _curr_tissue.at(row,col);
+		}
+	}
 }
 
 /* Public Method: get_num_cell()
@@ -367,6 +487,36 @@ bool Manager::has_comb_reac() {
 	return false;
 }
 
+SettingsCont *Manager::get_sc_ref() {
+	return _sc_ref;
+}
+
+void Manager::add_score(double score) {
+	_evaluation_scores.push_back(score);
+}
+
+void Manager::add_integration(int generation) {
+	_evaluation_generations.push_back(generation);
+}
+
+void Manager::scores_to_file( ofstream& file ) {
+	for ( int i_score = 0 ; i_score < _evaluation_scores.size() ; i_score++ ) {
+		file << _evaluation_scores.at(i_score) << "\n";
+	}
+}
+
+void Manager::evaluation_generations_to_file( ofstream& file ) {
+	for ( int i_evaluation = 0 ; i_evaluation < _evaluation_generations.size() ; i_evaluation++ ) {
+		file << _evaluation_generations.at(i_evaluation) << "\n";
+	}
+}
+
+void Manager::mutation_generations_to_file( ofstream& file ) {
+	for ( int i_generation ; i_generation < _mutation_generations.size() ; i_generation++ ) {
+		file << _mutation_generations.at(i_generation) << "\n";
+	}
+}
+
 /* Private Method: react(xi,dx_dt)
  * -------------------------------------------------------------------------- 
  * Given the current reactions in our genome, it fills the dx_dt vector, 
@@ -459,15 +609,15 @@ void Manager::resize_dmats() {
  *		On the vector above, update_indices(3,-4) would produce run-time 
  *		errors.
  */
-void Manager::update_indices( int first_index , int num_insertion ) {
+void Manager::update_mol_indices( int first_index , int num_insertion ) {
 	for ( int i = 0 ; i < _genes.size() ; i++ ) {
-		_genes.at(i)->update_indices(first_index,num_insertion);
+		_genes.at(i)->update_mol_indices(first_index,num_insertion);
 	}
 	for ( int i = 0 ; i < _proteins.size() ; i++ ) {
-		_proteins.at(i)->update_indices(first_index,num_insertion);
+		_proteins.at(i)->update_mol_indices(first_index,num_insertion);
 	}
 	for ( int i = 0 ; i < _reactions.size() ; i++ ) {
-		_reactions.at(i)->update_indices(first_index,num_insertion);
+		_reactions.at(i)->update_mol_indices(first_index,num_insertion);
 	}
 }
 
@@ -507,7 +657,7 @@ void Manager::add_gene( double prod_rate , double deg_rate ) {
 	int i_new_prot_in_prots = i_new_prot - (_genes.size() + 1); // -1 b/c we haven't yet added the new gene to genes
 	
 	/* Step 1 */
-	update_indices(i_new_gene,1);
+	update_mol_indices(i_new_gene,1);
 	
 	/* Steps 2 - 5 */
 	_genes.push_back(new Gene(i_new_gene,i_new_prot,NEXIST,NEXIST,1.0));
@@ -516,16 +666,10 @@ void Manager::add_gene( double prod_rate , double deg_rate ) {
 	_reactions.push_back(new DegReaction(i_new_prot,deg_rate));
 	
 	/* Step 6 */
-	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-2); // add new PromReaction
-	_genes.at(i_new_gene_in_genes)->add_reaction(curr_reac_ref); // to new gene
-	_proteins.at(i_new_prot_in_prots)->add_reaction(curr_reac_ref); // to new product protein
-	
-	Reaction* success;
-	success = _genes.at(i_new_gene_in_genes)->get_reaction(0);
-	
+	_genes.at(i_new_gene_in_genes)->add_reaction(_reactions.size()-2); // to new gene
+	_proteins.at(i_new_prot_in_prots)->add_reaction(_reactions.size()-2); // to new product protein
 	/* Step 7 */
-	curr_reac_ref = _reactions.at(_reactions.size()-1); // add new DegReaction
-	_proteins.at(i_new_prot_in_prots)->add_reaction(curr_reac_ref); // to now product protein
+	_proteins.at(i_new_prot_in_prots)->add_reaction(_reactions.size()-1); // to now product protein
 	
 	/* Step 8 */
 	_num_mol += 2;
@@ -571,7 +715,7 @@ void Manager::add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
 	int i_promoted_gene = _genes.size();
 	
 	/* Step 1 */
-	update_indices(i_promoted_gene,1);
+	update_mol_indices(i_promoted_gene,1);
 	
 	/* We find these indices after step 1 to assure they are consistent with
 	 * the new indexing.
@@ -590,16 +734,14 @@ void Manager::add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
 	_reactions.push_back(new PromReaction(i_promoted_gene,i_product_protein,new_prod_rate));
 	
 	/* Step 5 */
-	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-2); // add new PromBindingReaction
-	_genes.at(i_gene_in_genes)->add_reaction(curr_reac_ref); // to root gene
-	_proteins.at(i_prot_in_prots)->add_reaction(curr_reac_ref); // to bound protein
-	_genes.at(_genes.size()-1)->add_reaction(curr_reac_ref); // to new gene:prot complex
+	_genes.at(i_gene_in_genes)->add_reaction(_reactions.size()-2); // to root gene
+	_proteins.at(i_prot_in_prots)->add_reaction(_reactions.size()-2); // to bound protein
+	_genes.at(_genes.size()-1)->add_reaction(_reactions.size()-2); // to new gene:prot complex
 	
 	/* Step 6 */
 	int i_product_prot_in_prots = i_product_protein - _genes.size();
-	curr_reac_ref = _reactions.at(_reactions.size()-1); // add new PromReaction
-	_proteins.at(i_product_prot_in_prots)->add_reaction(curr_reac_ref); // to product protein
-	_genes.at(_genes.size()-1)->add_reaction(curr_reac_ref); // to new gene:prot complex
+	_proteins.at(i_product_prot_in_prots)->add_reaction(_reactions.size()-1); // to product protein
+	_genes.at(_genes.size()-1)->add_reaction(_reactions.size()-1); // to new gene:prot complex
 	
 	/* Step 7 */
 	_num_mol += 1;
@@ -651,20 +793,19 @@ void Manager::add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_pro
 										  forward_kinetic,backward_kinetic));
 	
 	/* Step 4 */
-	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-1); // add new CombReaction
-	_proteins.at(i_prot_zero_in_prots)->add_reaction(curr_reac_ref); // to first participant
+	_proteins.at(i_prot_zero_in_prots)->add_reaction(_reactions.size()-1); // to first participant
 	if (i_prot_zero_in_prots != i_prot_one_in_prots) {
-		_proteins.at(i_prot_one_in_prots)->add_reaction(curr_reac_ref); // to second participant
+		_proteins.at(i_prot_one_in_prots)->add_reaction(_reactions.size()-1); // to second participant
 	}
-	_proteins.at(_proteins.size()-1)->add_reaction(curr_reac_ref); // to their product.
+	_proteins.at(_proteins.size()-1)->add_reaction(_reactions.size()-1); // to their product.
 	
 	/* Step 5 */
 	_num_mol += 1;
 }
 
-/* Private Method: add_LatPromReac(i_loc_prot_in_prots,
- *								  i_neighbor_prot_in_prots,
- *								  double kinetic,double K)
+/* Private Method: add_LatPromReac(i_promoting_neighbors_in_prots,
+ *								  i_promoted_by_neighbors_in_prots,
+ *								  kinetic,K)
  * -------------------------------------------------------------------------- 
  * Makes the protein in position i_loc_prot_in_prots in the protein vector
  * get promoted by the presence of the protein i_neighbor_prot_in_prots in
@@ -681,25 +822,62 @@ void Manager::add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_pro
  *		proteins.
  */
 
-void Manager::add_LatPromReac( int i_promoted_by_neighbors_in_prots , 
-							  int i_promoting_neighbors_in_prots ,
+void Manager::add_LatPromReac( int i_promoting_neighbors_in_prots , 
+							  int i_promoted_by_neighbors_in_prots ,
 							  double kinetic , double K ) {
 	
 	int i_promoting_neighbors = _genes.size() + i_promoting_neighbors_in_prots;
 	int i_promoted_by_neighbors = _genes.size() + i_promoted_by_neighbors_in_prots;
 	
 	/* Step 1 */
-	_reactions.push_back(new LatPromReaction(i_promoted_by_neighbors,i_promoting_neighbors,
+	_reactions.push_back(new LatPromReaction(i_promoting_neighbors,i_promoted_by_neighbors,
 											 kinetic,K));
 	
 	/* Step 2 */
-	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-1); // add new LatPromReaction
-	_proteins.at(i_promoted_by_neighbors_in_prots)->add_reaction(curr_reac_ref); // to local protein
-	if ( i_promoted_by_neighbors_in_prots != i_promoting_neighbors_in_prots ) {
-		_proteins.at(i_promoting_neighbors_in_prots)->add_reaction(curr_reac_ref); // to neighbor protein
+	_proteins.at(i_promoting_neighbors_in_prots)->add_reaction(_reactions.size()-1); // to local protein
+	if ( i_promoting_neighbors_in_prots != i_promoted_by_neighbors_in_prots ) {
+		_proteins.at(i_promoted_by_neighbors_in_prots)->add_reaction(_reactions.size()-1); // to neighbor protein
 	}
 	
 }
+
+/* Private Method: add_LatRepReac(i_repressing_neighbors_in_prots,
+ *								  i_repressed_by_neighbors_in_prots,
+ *								  kinetic,K)
+ * -------------------------------------------------------------------------- 
+ * Makes the protein in position i_loc_prot_in_prots in the protein vector
+ * get promoted by the presence of the protein i_neighbor_prot_in_prots in
+ * neighboring cells, with the provided kinetic constants.
+ * 
+ * CAUTION: It is assumed that i_loc_prot_in_prots and 
+ * i_neighbor_prot_in_prots is the index of a protein. No check is performed 
+ * by the function to guarantee this.
+ *
+ * The tasks that need to be performed are:
+ *
+ *		1. A new reaction is added describing the lateral promotion reaction.
+ *		2. This reaction is added to the internal data of the participating
+ *		proteins.
+ */
+
+void Manager::add_LatRepReac( int i_repressing_neighbors_in_prots , 
+							  int i_repressed_by_neighbors_in_prots ,
+							  double kinetic , double K ) {
+	
+	int i_repressing_neighbors = _genes.size() + i_repressing_neighbors_in_prots;
+	int i_repressed_by_neighbors = _genes.size() + i_repressed_by_neighbors_in_prots;
+	
+	/* Step 1 */
+	_reactions.push_back(new LatRepReaction(i_repressing_neighbors,i_repressed_by_neighbors,
+											 kinetic,K));
+	
+	/* Step 2 */
+	_proteins.at(i_repressing_neighbors_in_prots)->add_reaction(_reactions.size()-1); // to local protein
+	if ( i_repressing_neighbors_in_prots != i_repressed_by_neighbors_in_prots ) {
+		_proteins.at(i_repressed_by_neighbors_in_prots)->add_reaction(_reactions.size()-1); // to neighbor protein
+	}
+}
+
 
 /* Private Method: add_HillPromReac(i_promoter,i_promoted,
  *								  kinetic,K,cooperativity)
@@ -730,13 +908,13 @@ void Manager::add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prot
 											   kinetic,K,cooperativity) );
 	
 	/* Step 2 */
-	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-1); // add new HillPromReaction
-	_proteins.at(i_promoter_in_prots)->add_reaction(curr_reac_ref); // to promoter protein
+	_proteins.at(i_promoter_in_prots)->add_reaction(_reactions.size()-1); // to promoter protein
 	if ( i_promoter_in_prots != i_promoted_in_prots ) {
-		_proteins.at(i_promoted_in_prots)->add_reaction(curr_reac_ref); // to promoted protein
+		_proteins.at(i_promoted_in_prots)->add_reaction(_reactions.size()-1); // to promoted protein
 	}
 	
 }
+
 
 /* Private Method: add_HillRepReac(i_promoter,i_promoted,
  *								  kinetic,K,cooperativity)
@@ -757,21 +935,118 @@ void Manager::add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prot
  */
 
 void Manager::add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_prots ,
-							   double kinetic , double K , double cooperativity ) {
+							  double kinetic , double K , double cooperativity ) {
 	
 	int i_repressor = _genes.size() + i_repressor_in_prots;
 	int i_repressed = _genes.size() + i_repressed_in_prots;
 	
 	/* Step 1 */
 	_reactions.push_back(new HillRepReaction(i_repressor,i_repressed,
-											  kinetic,K,cooperativity));
+											 kinetic,K,cooperativity));
 	
 	/* Step 2 */
-	Reaction* curr_reac_ref = _reactions.at(_reactions.size()-1); // add new HillPromReaction
-	_proteins.at(i_repressor_in_prots)->add_reaction(curr_reac_ref); // to promoter protein
+	_proteins.at(i_repressor_in_prots)->add_reaction(_reactions.size()-1); // to promoter protein
 	if ( i_repressor_in_prots != i_repressed_in_prots ) {
-		_proteins.at(i_repressed_in_prots)->add_reaction(curr_reac_ref); // to promoted protein
-	}	
+		_proteins.at(i_repressed_in_prots)->add_reaction(_reactions.size()-1); // to promoted protein
+	}
+}
+
+/* Private Method: remove_reaction(i_reac)
+ * --------------------------------------------------------------------------
+ * WARNING: As this method stands right now, the genes and proteins will not
+ * maintain accurate _reactions vectors. Also, will cause problems if i_reac
+ * not a valid index.
+ */
+
+void Manager::remove_reaction( int i_reac ) {
+	
+	std::set<int> reacs_to_delete;
+	std::set<int> genes_to_delete;
+	std::set<int> prots_to_delete;
+	
+	reacs_to_delete.insert(i_reac);
+	reac_removal_cascade(i_reac,reacs_to_delete,genes_to_delete,prots_to_delete);
+	
+	delete _reactions.at(i_reac);
+	for ( int i = i_reac + 1 ; i < _reactions.size() ; i++ ) {
+		_reactions.at(i-1) = _reactions.at(i);
+	}
+	_reactions.pop_back();
+
+}
+
+void Manager::reac_removal_cascade( int i_reac_to_remove , 
+								   std::set<int>& reacs_to_delete ,
+								   std::set<int>& genes_to_delete , 
+								   std::set<int>& prots_to_delete ) {
+	
+	int i_mol_to_delete = _reactions.at(i_reac_to_remove)->get_i_dependent_molecule();
+	if (i_mol_to_delete == NEXIST) return;
+	
+	if (i_mol_to_delete < _genes.size()) { // if molecule is a gene
+		
+		int genes_size = genes_to_delete.size();
+		genes_to_delete.insert(i_mol_to_delete);
+		/* Return if gene was already in genes_to_delete */
+		if (genes_to_delete.size() == genes_size) return;
+		
+		else gene_removal_cascade( i_mol_to_delete , reacs_to_delete , 
+								 genes_to_delete , prots_to_delete );
+		
+	}
+	
+	else {
+		
+		int i_prot_to_delete = i_mol_to_delete - _genes.size();
+		int prots_size = prots_to_delete.size();
+		prots_to_delete.insert(i_prot_to_delete);
+		/* Return if prot was already in prots_to_delete */
+		if (prots_to_delete.size() == prots_size) return;
+		
+		else prot_removal_cascade( i_mol_to_delete , reacs_to_delete , 
+								 genes_to_delete , prots_to_delete );
+		
+	}
+	
+}
+
+void Manager::gene_removal_cascade( int i_gene_to_delete ,
+								  std::set<int>& reacs_to_delete ,
+								  std::set<int>& genes_to_delete ,
+								  std::set<int>& prots_to_delete ) {
+
+	for ( std::set<int>::iterator it = _genes.at(i_gene_to_delete)->reacs_begin() ; 
+		 it != _genes.at(i_gene_to_delete)->reacs_end(); 
+		 it++ ) {
+		
+		int reacs_size = reacs_to_delete.size();
+		reacs_to_delete.insert(*it);
+		/* If *it wasn't already among those to delete, we cascade */
+		if (reacs_size != reacs_to_delete.size()) reac_removal_cascade(*it,
+																	   reacs_to_delete,
+																	   genes_to_delete,
+																	   prots_to_delete);
+	}
+}
+
+void Manager::prot_removal_cascade( int i_prot_to_delete ,
+								   std::set<int>& reacs_to_delete ,
+								   std::set<int>& genes_to_delete ,
+								   std::set<int>& prots_to_delete ) {
+	
+	for ( std::set<int>::iterator it = _proteins.at(i_prot_to_delete)->reacs_begin() ;
+		 it != _proteins.at(i_prot_to_delete)->reacs_end() ;
+		 it++ ) {
+		
+		int reacs_size = reacs_to_delete.size();
+		reacs_to_delete.insert(*it);
+		/* If *it wasn't already among those to delete, we cascade */
+		if (reacs_size != reacs_to_delete.size()) reac_removal_cascade(*it,
+																	   reacs_to_delete,
+																	   genes_to_delete,
+																	   prots_to_delete);
+	}
+	
 }
 
 
@@ -801,8 +1076,6 @@ void Manager::degredation_mutation(  boost::random::mt19937& generator ) {
 		}
 	}
 	
-	
-	
 }
 
 /* Private Method: kinetic_mutation(generator)
@@ -830,8 +1103,7 @@ void Manager::kinetic_mutation( boost::random::mt19937& generator ) {
 		if ( _sc_ref->_verbose == 1 ) {
 			std::cout << "MUTATION OF KINETIC CONSTANT OCCURRED (Reaction " << i_ndeg.at(i_reac) << ")" << std::endl;
 		}
-	}
-	
+	}	
 }
 
 /* Private Method: prom_binding_mutation(generator)
@@ -900,39 +1172,82 @@ void Manager::post_transcript_mutation( boost::random::mt19937& generator ) {
 	
 }
 
-/* Private Method: post_transcript_mutation(generator)
+/* Private Method: add_hill_mutation(generator)
  * -------------------------------------------------------------------------- 
  */
-void Manager::intra_hill_mutation( boost::random::mt19937& generator ) {
+void Manager::add_hill_mutation( boost::random::mt19937& generator ) {
 	
 	if ( _proteins.size() == 0 ) return;
 	
-	boost::random::uniform_int_distribution<> is_promotion(0,1);
+	boost::random::uniform_int_distribution<> reaction_type(0,3);
 	boost::random::uniform_int_distribution<> which_protein(0,_proteins.size()-1);
 	boost::random::uniform_real_distribution<> rand_real(0,2.0);
 	
-	int is_prom = is_promotion(generator);
-	double kinetic = rand_real(generator);
-	double K = rand_real(generator);
-	double cooperativity = rand_real(generator);
-	int actor_protein = which_protein(generator);
-	int receiver_protein = which_protein(generator);
+	for ( int trial_num = 0 ; trial_num < 5 ; trial_num++ ) {
 	
-	switch (is_prom) {
-		case 0:
-			add_HillRepReac(actor_protein,receiver_protein,kinetic,K,cooperativity);
-			break;
-		case 1:
-			add_HillPromReac(actor_protein,receiver_protein,kinetic,K,cooperativity);
-			break;
-		default:
-			break;
+		int type = reaction_type(generator);
+		double kinetic = .5+rand_real(generator);
+		double K = rand_real(generator);
+		double cooperativity = 5.0; // We know cooperativities should general be more than one
+		int actor_protein = which_protein(generator);
+		int receiver_protein = which_protein(generator);
+		
+		switch (type) {
+			case 0:
+				add_HillRepReac(actor_protein,receiver_protein,kinetic,K,cooperativity);
+				break;
+			case 1:
+				add_HillPromReac(actor_protein,receiver_protein,kinetic,K,cooperativity);
+				break;
+			case 2:
+				add_LatPromReac(actor_protein, receiver_protein, kinetic, K);
+				break;
+			case 3:
+				add_LatRepReac(actor_protein, receiver_protein, kinetic, K);
+			default:
+				break;
+		}
+		
+		/* Remove the added reaction if it is a duplicate */
+		int temp_trial_num = trial_num;
+		trial_num = 5; // We only run loop again if we find no duplicates of this reaction
+		int num_reac = _reactions.size();
+		for ( int i_reac = 0 ; i_reac < num_reac-1 ; i_reac++ ) {
+			if ( *(_reactions.at(i_reac)) == *(_reactions.at(num_reac-1)) ) {
+				remove_reaction(num_reac-1);
+				/* Set looping parameters so we return */
+				trial_num = temp_trial_num;
+				i_reac = num_reac-1;
+			}
+		}
 	}
 	
 	if ( _sc_ref->_verbose == 1 ) {
 		std::cout << "HILL MUTATION OCCURRED\n";
 	}
 
+}
+
+/* Private Method: remove_reaction(generator)
+ * --------------------------------------------------------------------------
+ */
+
+void Manager::removal_mutation( boost::random::mt19937& generator ) {
+	std::vector<int> i_candidates;
+	for ( int i = 0 ; i < _reactions.size() ; i++ ) {
+		if ( (_reactions.at(i)->get_type()) != DEGRADATION && (_reactions.at(i)->get_type()) != PROMOTION ) {
+			i_candidates.push_back(i);
+		}
+	}
+
+	if (i_candidates.size() > 0) {
+		boost::random::uniform_int_distribution<> which_reaction(0,i_candidates.size()-1);
+		remove_reaction(i_candidates.at(which_reaction(generator)));
+	}
+	if ( _sc_ref->_verbose == 1 ) {
+		std::cout << "REMOVAL MUTATION OCCURRED\n";
+	}
+	
 }
 
 /* Private Method: rk4_det_ti(num_step)
@@ -1243,7 +1558,7 @@ void Manager::collier_delta_notch_construct() {
 	/* < d D > */
 	add_gene(0.0,1.0); // Notch
 	/* < d n D N > */
-	add_LatPromReac(1,0,1.0,.01); // dN/dt = (D_n)^2 / (.01 + (D_n)^2)
+	add_LatPromReac(0,1,1.0,.01); // dN/dt = (D_n)^2 / (.01 + (D_n)^2)
 	/* < d n D N > */
 	add_HillRepReac(1,0,1.0,.01,2); // dD/dt = 1 / (1 + 100N^2)
 	/* < d n D N > */
@@ -1298,6 +1613,28 @@ void Manager::two_protein_construct() {
 	_num_mol = 0;
 	add_gene(0.0,1.0);
 	add_gene(0.0,1.0);
+	initialize();
+}
+
+void Manager::best_genome_construct() {
+	_num_mol = 0;
+	add_gene(0.0,1.0);
+	add_gene(0.0,1.0);
+	/*
+	add_HillRepReac(0,1,1.34998, 1.44069, 5);
+	add_LatPromReac(1, 0, 1.2979, .958763);
+	add_HillPromReac(0, 0, .645871, .949438, 5);
+	 
+	
+	add_HillRepReac(1, 0, 1.92373, .384852, 5);
+	add_LatPromReac(0, 1, 2.70129, .737987);
+	
+	*/
+	
+	add_HillRepReac(0,1, 1.19796, 1.3432, 5);
+	add_LatPromReac(0, 1, 1.7474, .939854);
+	add_LatPromReac(1, 0, 1.58386, 1.26992);
+	
 	initialize();
 }
 

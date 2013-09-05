@@ -25,6 +25,9 @@
 # include <cstdlib>
 # include <iostream>
 # include <fstream>
+# include <algorithm>
+# include <set>
+# include <iterator>
 # include "../Reactions/Reaction.h"
 # include "../old/helpers/SettingsCont.h"
 # include "../nexist.cpp"
@@ -34,17 +37,25 @@ using namespace std;
 class Molecule {
 	
 public:
+	Molecule( const Molecule& other );
 	~Molecule() {}
 	
-	unsigned int get_i_self();
+	int get_i_self();
 	double get_init_conc();
-	void add_reaction(Reaction* reac_ref);
-	Reaction* get_reaction( int i_reac );
-	int get_num_reac();
-
-	virtual void update_indices( int first_index , int num_insertion) = 0;
+	void add_reaction( int i_reac );
+	
+	virtual void update_mol_indices( int first_index , int num_insertion ) = 0;
+	template <class UpdateClass>
+	void update_reac_indices( UpdateClass update_index );
+	
 	virtual void print_info ( std::string line_start ) = 0;
 	virtual void to_file (ofstream& file,std::string line_start) = 0;
+	
+	/* Iterator through reactions molecule is relevant to */
+	std::set<int>::iterator reacs_begin() const;
+	std::set<int>::iterator reacs_end() const;
+	
+	
 	
 protected:
 	
@@ -52,7 +63,7 @@ protected:
 	
 	SettingsCont* _sc_ref;
 	
-	unsigned int _i_self;
+	int _i_self;
 	
 	double _init_conc;
 	
@@ -64,12 +75,11 @@ protected:
 	 * The molecule destructor should NOT delete the Reactions.
 	 *
 	 */
-	vector<Reaction*> _reactions;
+	std::set<int> _reactions;
 	
 private:
+	Molecule& operator=( const Molecule& rhs );
 	Molecule(Molecule* newOne) {}
-	Molecule& operator=( const Molecule& rhs ) {return *this;}
-	
 };
 
 #endif

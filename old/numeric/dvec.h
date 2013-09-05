@@ -10,6 +10,7 @@
 class dvec {
 	
 public:
+	
 	dvec();
 	dvec(unsigned int size);
 	dvec(unsigned int size, double value);
@@ -67,6 +68,11 @@ protected:
 	double getValue(int pos) const;
 	
 	unsigned int _size;
+	
+	int _allocation_size;
+	
+	static int _counter;
+	
 	
 private:
 	double *_main;

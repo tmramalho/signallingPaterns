@@ -2,14 +2,17 @@
 
 dvec::dvec() {
 	//std::cout << "dvec default constructor\n";
-	_main = new double[1];
+	_allocation_size = 20;
+	_main = new double[_allocation_size];
 	_size = 1;
 	_main[0] = 0;
 }
 
 dvec::dvec(unsigned int size) {
 	//std::cout << "dvec size constructor ( " << size << " )\n";
-	_main = new double[size];
+	_allocation_size = 20;
+	while ( _allocation_size < size ) _allocation_size *= 2;
+	_main = new double[_allocation_size];
 	_size = size;
 	for(unsigned int i = 0 ; i < size ; i++) {
 		_main[i] = 0;
@@ -19,7 +22,9 @@ dvec::dvec(unsigned int size) {
 
 dvec::dvec(unsigned int size, double value) {
 	//std::cout << "dvec size value constructor ( " << size << " )\n";
-	_main = new double[size];
+	_allocation_size = 20;
+	while ( _allocation_size < size ) _allocation_size *= 2;
+	_main = new double[_allocation_size];
 	_size = size;
 	for(unsigned int i = 0 ; i < size ; i++) {
 		_main[i] = value;
@@ -28,7 +33,9 @@ dvec::dvec(unsigned int size, double value) {
 }
 
 dvec::dvec(unsigned int size, double *nums) {
-	_main = new double[size];
+	_allocation_size = 20;
+	while ( _allocation_size < size ) _allocation_size *= 2;
+	_main = new double[_allocation_size];
 	_size = size;
 	for(unsigned int i=0;i<size;i++) {
 		_main[i] = nums[i];
@@ -37,8 +44,10 @@ dvec::dvec(unsigned int size, double *nums) {
 }
 
 dvec::dvec(unsigned int size, dvec *x) {
+	_allocation_size = 20;
 	_size = x->size() > size ? size : x->size();
-	_main = new double[_size];
+	while ( _allocation_size < _size ) _allocation_size *= 2;
+	_main = new double[_allocation_size];
 	for(unsigned int i = 0 ; i < _size ; i++) {
 		_main[i] = (*x)[i];
 	}
@@ -57,8 +66,9 @@ dvec::dvec(unsigned int size, dvec *x) {
 
 dvec::dvec(dvec *newOne) {
 	//std::cout << "dvec copy constructor\n";
+	_allocation_size = newOne->_allocation_size;
 	_size = newOne->size();
-	_main = new double[_size];
+	_main = new double[_allocation_size];
 	//_main = new double[size];
 	for(unsigned int i=0;i<_size;i++) {
 		_main[i] = (*newOne)[i];
@@ -67,13 +77,17 @@ dvec::dvec(dvec *newOne) {
 }
 
 dvec::~dvec() {
-	std::cout << "dvec destructor\n"; /*<< _size << " : ";
+	//std::cout << "dvec destructor\n"; 
+	/*<< _size << " : ";
 	for ( int i = 0 ; i < _size ; i++ ) {
 		std::cout << _main[i] << " , ";
 	}
 	std::cout << ")\n";*/
+	_counter++;
 	delete[] _main;
 }
+
+int dvec::_counter = 0;
 
 unsigned int dvec::size() const {
 	return _size;
@@ -98,8 +112,10 @@ void dvec::set(const dvec &other) {
 	if (this != &other) {
 		delete[] _main;
 		unsigned int size = other.size();
-		_main = new double[size];
+		unsigned int allocation_size = other._allocation_size;
+		_main = new double[allocation_size];
 		_size = size;
+		_allocation_size = allocation_size;
 		for(unsigned int i = 0 ; i < _size ; i++) {
 			_main[i] = other.getValue(i);
 		}
@@ -139,8 +155,10 @@ dvec &dvec::operator=(const dvec &other) {
 	if (this != &other) {
 		delete[] _main;
 		unsigned int size = other.size();
-		_main = new double[size];
+		unsigned int allocation_size = other._allocation_size;
+		_main = new double[allocation_size];
 		_size = size;
+		_allocation_size = allocation_size;
 		for(unsigned int i = 0 ; i < _size ; i++) {
 			_main[i] = other.getValue(i);
 		}
@@ -226,10 +244,16 @@ std::ostream &operator <<(std::ostream &output, dvec &vector) {
 
 void dvec::resize(int size) {
 	if (size == _size) return;
-	else {
+	else if (size <= _allocation_size) {
 		_size = size;
+	}
+	else {
+		while (_allocation_size < size) {
+			_allocation_size *= 2;
+		}
 		delete[] _main;
-		_main = new double[_size];
+		_main = new double[_allocation_size];
+		_size = size;
 	}
 }
 
@@ -339,7 +363,4 @@ void dvec::plus_equals_lin_comb(const dvec &vec1, double c1,
 		 vec4.getValue(i)*c4);
 	}
 }
-
-
-
 

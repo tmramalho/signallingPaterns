@@ -23,6 +23,10 @@
  *
  */
 
+
+#ifndef REACTION_H
+#define REACTION_H
+
 # include <cstdlib>
 # include <iostream>
 # include <fstream>
@@ -31,6 +35,7 @@
 # include <ctime>
 # include <cstring>
 # include <vector>
+# include <algorithm>
 
 /* Boost Random Libraries */
 # include <boost/random/uniform_int_distribution.hpp>
@@ -46,27 +51,28 @@
 # include "../old/helpers/SettingsCont.h"
 # include "../nexist.cpp"
 
-#ifndef REACTION_H
-#define REACTION_H
-
 class Reaction {
 
 public:
 	virtual ~Reaction();
 	
-	int get_num_part();
+	bool operator==( const Reaction& rhs ) const;
+	bool operator!=( const Reaction& rhs ) const;
+	
+	int get_num_part() const;
 	ReactionType get_type();
 	
 	virtual Reaction* copy() = 0;
 	
-	virtual int get_i_part(int part_num) = 0;
+	virtual int get_i_part(int part_num) const = 0;
+	virtual int get_i_dependent_molecule() const = 0;
 	
 	virtual void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ) = 0;
 	virtual void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 					   boost::random::normal_distribution<>& dist , 
 					   boost::random::mt19937& generator , double q ) = 0;
 	
-	virtual void update_indices( int first_index , int num_insertion) = 0;
+	virtual void update_mol_indices( int first_index , int num_insertion) = 0;
 	
 	virtual void mutate( boost::random::mt19937& generator ) = 0;
 	
@@ -87,7 +93,6 @@ protected:
 	
 private:
 	Reaction(Reaction *newOne);
-	Reaction& operator=( const Reaction& rhs ) { return *this; }
 	
 };
 

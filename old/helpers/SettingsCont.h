@@ -20,7 +20,8 @@
 #include <string>
 
 #include "../../IntegrationType.h"
-#include "../../MutationType.h"
+#include "../../old/genetic/MutationType.h"
+#include "../../Reactions/ReactionType.h"
 
 #define SIG(x,b) ((1.0-b)/(1.0+exp(-x))+b)
 
@@ -34,6 +35,7 @@ public:
 	
 	/* Evolution Parameters */
 	int _num_threads, _na, _ng, _mutations_per_gen;
+	double _mutation_probability;
 	std::vector<MutationType> _mutation_types;
 
 	/* Integration Parameters */
@@ -46,11 +48,15 @@ public:
 	/* User Interface */
 	int _verbose;
 	
+	/* Data Tracking */
+	int _do_track;
+	
 	/* Public Methods */
 	void set_neighbors( std::string neighbor_code );
 	static SettingsCont *getInstance();
 	//void setParameters(int argc, char *argv[]);
 	~SettingsCont();
+
 };
 
 #endif /* SETTINGSCONT_H_ */

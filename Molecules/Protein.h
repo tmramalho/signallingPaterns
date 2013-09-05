@@ -16,23 +16,26 @@
  *
  */
 
-# include "Molecule.h"
-
 #ifndef PROTEIN_H
 #define PROTEIN_H
+
+# include "Molecule.h"
 
 class Protein : public Molecule {
 
 public:
 	Protein( int i_self , int i_root_zero , int i_root_one , double init_conc );
-	~Protein() { std::cout << "Protein Destructor\n"; }
+	Protein( const Protein& other );
+	Protein( std::ifstream& file );
+	~Protein() {}
 	
 	int get_i_root_zero();
 	int get_i_root_one();
 	
-	virtual void update_indices( int first_index , int num_insertions );
-	virtual void print_info ( std::string line_start );
-	virtual void to_file ( std::ofstream& file , std::string line_start);
+	void update_mol_indices( int first_index , int num_insertion );
+
+	void print_info ( std::string line_start );
+	void to_file ( std::ofstream& file , std::string line_start);
 	
 protected:
 	
@@ -43,6 +46,13 @@ protected:
 	 */
 	int _i_root_zero;
 	int _i_root_one;
+	
+	/* File Format Variables */
+	static const int NUM_LINE = 4;
+	static const int I_SELF_LINE = 0;
+	static const int I_ROOT_ZERO_LINE = 1;
+	static const int I_ROOT_ONE_LINE = 2;
+	static const int INIT_CONC_LINE = 3;
 	
 private:
 	Protein(Protein* newOne) {}

@@ -13,21 +13,26 @@ SettingsCont::SettingsCont() {
 	
 	/* Evolution Parameters */
 	_num_threads = 2;
-	_na = 5;
-	_ng = 5;
+	_na = 15;
+	_ng = 250;
 	_mutations_per_gen = 2;
-	_mutation_types.push_back(DEGRADATION_M);
+	_mutation_probability = .9;
 	_mutation_types.push_back(KINETIC);
-	_mutation_types.push_back(ADD_GENE);
-	_mutation_types.push_back(INTRA_HILL);
+	_mutation_types.push_back(KINETIC);
+	_mutation_types.push_back(ADD_HILL);
+	_mutation_types.push_back(REMOVAL);
 	
 	/* Integration Parameters */
 	_dt = .001;
 	_mode = RK4_STC_TI;
-	_stochasticity = .01;
+	_stochasticity = .05;
 	
 	/* Tissue Geometry */
 	set_neighbors("1,|0,2,|1,|");
+	//set_neighbors("1,|0,2,|1,3,|2,4,|3,5,|4,6,|5,7,|6,8,|7,9,|8,10,|9,11,|10,12,|11,13,|12,14,|13,15,|14,16,|15,17,|16,18,|17,|");
+	
+	/* Data Tracking */
+	_do_track = 2;
 	
 	/* User Interface */
 	_verbose = 0;
@@ -112,7 +117,6 @@ SettingsCont *SettingsCont::getInstance() {
 void SettingsCont::set_neighbors ( std::string neighbors_code ) {
 	
 	_neighbors.erase(_neighbors.begin(),_neighbors.end());
-	
 	
 	for ( std::string::iterator it = neighbors_code.begin() ;
 		 it != neighbors_code.end() ;

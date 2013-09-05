@@ -14,7 +14,7 @@
  */
 DegReaction::DegReaction( int i_reac , double kinetic ) {
 	
-	std::cout << "DegReaction Specific Constructor\n";
+	//std::cout << "DegReaction Specific Constructor\n";
 	
 	_type = DEGRADATION;
 	
@@ -25,8 +25,27 @@ DegReaction::DegReaction( int i_reac , double kinetic ) {
 	
 }
 
+DegReaction::DegReaction( std::ifstream& file ) {
+
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_REAC_LINE:
+				file.ignore(256,':');
+				file >> _i_reac;
+				break;
+			case KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _kinetic;
+				break;
+			default:
+				break;
+		}
+	}
+
+}
+
 DegReaction::~DegReaction() {
-	std::cout << "DegReaction Destructor\n";
+	//std::cout << "DegReaction Destructor\n";
 }
 
 Reaction* DegReaction::copy() {
@@ -42,7 +61,7 @@ Reaction* DegReaction::copy() {
  *
  * Returns NEXIST for part_num != 0.
  */
-int DegReaction::get_i_part( int part_num ) {
+int DegReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:
 			return _i_reac;
@@ -51,6 +70,10 @@ int DegReaction::get_i_part( int part_num ) {
 			return NEXIST;
 			break;
 	}
+}
+
+int DegReaction::get_i_dependent_molecule() const {
+	return NEXIST;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)
@@ -101,7 +124,7 @@ void DegReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 	double det_flow = _kinetic * curr_tissue.at(i_curr_cell,_i_reac); 
 	
 	double rand = dist(generator);
-	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	
@@ -121,7 +144,7 @@ void DegReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void DegReaction::update_indices( int first_index , int num_insertion ) {
+void DegReaction::update_mol_indices( int first_index , int num_insertion ) {
 	/* Note: Because NEXIST = -1, non-existant participants will never be 
 	 * updated by the insertion procedure as desired.
 	 */	
@@ -157,9 +180,20 @@ void DegReaction::mutate ( boost::random::mt19937& generator ) {
  */
 void DegReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "Reaction Type: Degredation Reaction" << std::endl;
-	std::cout << line_start << "Index of Degrading Protein: " << _i_reac << std::endl;
-	std::cout << line_start << "Degredation Rate: " << _kinetic << std::endl;
+	std::cout << line_start << "Reaction Type: Degradation Reaction\n";
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_REAC_LINE:
+				std::cout << line_start << "Index of Degrading Protein: " << _i_reac << "\n";
+				break;
+			case KINETIC_LINE:
+				std::cout << line_start << "Degredation Rate: " << _kinetic << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 	
 }
 
@@ -168,9 +202,19 @@ void DegReaction::print_info ( std::string line_start ) {
  */
 void DegReaction::to_file ( std::ofstream& file , std::string line_start ) {
 	
-	file << line_start << "Reaction Type: Degredation Reaction\n";
-	file << line_start << "Index of Degrading Protein: " << _i_reac << "\n";
-	file << line_start << "Degredation Rate: " << _kinetic << "\n";
+	file << line_start << "Reaction Type: Degradation Reaction\n";
 	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_REAC_LINE:
+				file << line_start << "Index of Degrading Protein: " << _i_reac << "\n";
+				break;
+			case KINETIC_LINE:
+				file << line_start << "Degredation Rate: " << _kinetic << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 }
 

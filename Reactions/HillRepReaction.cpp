@@ -28,6 +28,38 @@ HillRepReaction::HillRepReaction( int i_repressor , int i_repressed ,
 	
 }
 
+HillRepReaction::HillRepReaction( std::ifstream& file ) {
+
+	for (int i = 0 ; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_REPRESSOR_LINE:
+				file.ignore(256,':');
+				file >> _i_repressor;
+				break;
+			case I_REPRESSED_LINE:
+				file.ignore(256,':');
+				file >> _i_repressed;
+				break;
+			case KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _kinetic;
+				break;
+			case K_LINE:
+				file.ignore(256,':');
+				file >> _K;
+				break;
+			case COOPERATIVITY_LINE:
+				file.ignore(256,':');
+				file >> _cooperativity;
+				break;
+			default:
+				break;
+		}
+	}
+	
+	
+}
+
 Reaction* HillRepReaction::copy() {
 	return new HillRepReaction(_i_repressor,_i_repressed,_kinetic,_K,_cooperativity);
 }
@@ -41,7 +73,7 @@ Reaction* HillRepReaction::copy() {
  *
  * Returns NEXIST for part_num != 0.
  */
-int HillRepReaction::get_i_part( int part_num ) {
+int HillRepReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:
 			return _i_repressed;
@@ -50,6 +82,10 @@ int HillRepReaction::get_i_part( int part_num ) {
 			return NEXIST;
 			break;
 	}
+}
+
+int HillRepReaction::get_i_dependent_molecule() const {
+	return NEXIST;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)
@@ -107,7 +143,7 @@ void HillRepReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 	( _K + pow( curr_tissue.at(i_curr_cell , _i_repressor ) , _cooperativity ));
 	
 	double rand = dist(generator);
-	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	
@@ -126,7 +162,7 @@ void HillRepReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
  *
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
-void HillRepReaction::update_indices( int first_index , int num_insertion ) {
+void HillRepReaction::update_mol_indices( int first_index , int num_insertion ) {
 	/* Note: Because NEXIST = -1, non-existant participants will never be 
 	 * updated by the insertion procedure as desired.
 	 */		
@@ -142,7 +178,7 @@ void HillRepReaction::update_indices( int first_index , int num_insertion ) {
  */
 void HillRepReaction::mutate ( boost::random::mt19937& generator ) {
 	
-	boost::random::uniform_int_distribution<> which_kinetic(0,2);
+	boost::random::uniform_int_distribution<> which_kinetic(0,1);
 	boost::random::uniform_real_distribution<> mutation_factor(0.0,2.0);
 	
 	int kinetic_num = which_kinetic(generator);
@@ -154,9 +190,6 @@ void HillRepReaction::mutate ( boost::random::mt19937& generator ) {
 			break;
 		case 1:
 			_K *= mut_factor;
-			break;
-		case 2:
-			_cooperativity *= mut_factor;
 			break;
 		default:
 			break;
@@ -181,12 +214,29 @@ void HillRepReaction::mutate ( boost::random::mt19937& generator ) {
  */
 void HillRepReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "ReactionType: Hill Repression Reaction" << std::endl;
-	std::cout << line_start << "Index of Repressor Protein: " << _i_repressor << std::endl;
-	std::cout << line_start << "Index of Repressed Protein: " << _i_repressed << std::endl;
-	std::cout << line_start << "Kinetic Rate: " << _kinetic << std::endl;
-	std::cout << line_start << "K: " << _K << std::endl;
-	std::cout << line_start << "Cooperativity: " << _cooperativity << std::endl;
+	std::cout << line_start << "ReactionType: Hill Repression Reaction\n";
+	
+	for (int i = 0 ; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_REPRESSOR_LINE:
+				std::cout << line_start << "Index of Repressor Protein: " << _i_repressor << "\n";
+				break;
+			case I_REPRESSED_LINE:
+				std::cout << line_start << "Index of Repressed Protein: " << _i_repressed << "\n";
+				break;
+			case KINETIC_LINE:
+				std::cout << line_start << "Kinetic Rate: " << _kinetic << "\n";
+				break;
+			case K_LINE:
+				std::cout << line_start << "K: " << _K << "\n";
+				break;
+			case COOPERATIVITY_LINE:
+				std::cout << line_start << "Cooperativity: " << _cooperativity << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 	
 }
 
@@ -196,11 +246,28 @@ void HillRepReaction::print_info ( std::string line_start ) {
 void HillRepReaction::to_file ( std::ofstream& file , std::string line_start ) {
 	
 	file << line_start << "ReactionType: Hill Repression Reaction\n";
-	file << line_start << "Index of Repressor Protein: " << _i_repressor << "\n";
-	file << line_start << "Index of Repressed Protein: " << _i_repressed << "\n";
-	file << line_start << "Kinetic Rate: " << _kinetic << "\n";
-	file << line_start << "K: " << _K << "\n";
-	file << line_start << "Cooperativity: " << _cooperativity << "\n";
+	
+	for (int i = 0 ; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_REPRESSOR_LINE:
+				file << line_start << "Index of Repressor Protein: " << _i_repressor << "\n";
+				break;
+			case I_REPRESSED_LINE:
+				file << line_start << "Index of Repressed Protein: " << _i_repressed << "\n";
+				break;
+			case KINETIC_LINE:
+				file << line_start << "Kinetic Rate: " << _kinetic << "\n";
+				break;
+			case K_LINE:
+				file << line_start << "K: " << _K << "\n";
+				break;
+			case COOPERATIVITY_LINE:
+				file << line_start << "Cooperativity: " << _cooperativity << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 	
 }
 

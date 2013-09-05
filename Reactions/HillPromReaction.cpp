@@ -28,6 +28,37 @@ HillPromReaction::HillPromReaction( int i_promoter , int i_promoted ,
 	
 }
 
+HillPromReaction::HillPromReaction( std::ifstream& file ) {
+
+	for (int i = 0 ; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_PROMOTER_LINE:
+				file.ignore(256,':');
+				file >> _i_promoter;
+				break;
+			case I_PROMOTED_LINE:
+				file.ignore(256,':');
+				file >> _i_promoted;
+				break;
+			case KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _kinetic;
+				break;
+			case K_LINE:
+				file.ignore(256,':');
+				file >> _K;
+				break;
+			case COOPERATIVITY_LINE:
+				file.ignore(256,':');
+				file >> _cooperativity;
+				break;
+			default:
+				break;
+		}
+	}
+	
+}
+
 Reaction* HillPromReaction::copy() {
 	return new HillPromReaction(_i_promoter,_i_promoted,_kinetic,_K,_cooperativity);
 }
@@ -41,7 +72,7 @@ Reaction* HillPromReaction::copy() {
  *
  * Returns NEXIST for part_num != 0.
  */
-int HillPromReaction::get_i_part( int part_num ) {
+int HillPromReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:
 			return _i_promoted;
@@ -50,6 +81,10 @@ int HillPromReaction::get_i_part( int part_num ) {
 			return NEXIST;
 			break;
 	}
+}
+
+int HillPromReaction::get_i_dependent_molecule() const {
+	return NEXIST;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)
@@ -107,7 +142,7 @@ void HillPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell 
 	( _K + pow( curr_tissue.at(i_curr_cell , _i_promoter ) , _cooperativity ));	
 	
 	double rand = dist(generator);
-	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	
@@ -126,7 +161,7 @@ void HillPromReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell 
  *
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
-void HillPromReaction::update_indices( int first_index , int num_insertion ) {
+void HillPromReaction::update_mol_indices( int first_index , int num_insertion ) {
 	/* Note: Because NEXIST = -1, non-existant participants will never be 
 	 * updated by the insertion procedure as desired.
 	 */		
@@ -142,7 +177,7 @@ void HillPromReaction::update_indices( int first_index , int num_insertion ) {
  */
 void HillPromReaction::mutate ( boost::random::mt19937& generator ) {
 
-	boost::random::uniform_int_distribution<> which_kinetic(0,2);
+	boost::random::uniform_int_distribution<> which_kinetic(0,1);
 	boost::random::uniform_real_distribution<> mutation_factor(0.0,2.0);
 	
 	int kinetic_num = which_kinetic(generator);
@@ -150,13 +185,10 @@ void HillPromReaction::mutate ( boost::random::mt19937& generator ) {
 	
 	switch ( kinetic_num ) {
 		case 0:
-			_kinetic *= mut_factor;
-			break;
-		case 1:
 			_K *= mut_factor;
 			break;
-		case 2:
-			_cooperativity *= mut_factor;
+		case 1:
+			_kinetic *= mut_factor;
 			break;
 		default:
 			break;
@@ -181,12 +213,30 @@ void HillPromReaction::mutate ( boost::random::mt19937& generator ) {
  */
 void HillPromReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "Reaction Type: Hill Promotion Reaction" << std::endl;
-	std::cout << line_start << "Index of Promoting Protein: " << _i_promoter << std::endl;
-	std::cout << line_start << "Index of Promoted Protein: " << _i_promoted << std::endl;
-	std::cout << line_start << "Kinetic Rate: " << _kinetic << std::endl;
-	std::cout << line_start << "K: " << _K << std::endl;
-	std::cout << line_start << "Cooperativity: " << _cooperativity << std::endl;
+	std::cout << line_start << "Reaction Type: Hill Promotion Reaction\n";
+	
+	for (int i = 0 ; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_PROMOTER_LINE:
+				std::cout << line_start << "Index of Promoting Protein: " << _i_promoter << "\n";
+				break;
+			case I_PROMOTED_LINE:
+				std::cout << line_start << "Index of Promoted Protein: " << _i_promoted <<  "\n";
+				break;
+			case KINETIC_LINE:
+				std::cout << line_start << "Kinetic Rate: " << _kinetic <<  "\n";
+				break;
+			case K_LINE:
+				std::cout << line_start << "K: " << _K << "\n";
+				break;
+			case COOPERATIVITY_LINE:
+				std::cout << line_start << "Cooperativity: " << _cooperativity << "\n";
+				break;
+			default:
+				break;
+		}
+	}
+	
 	
 }
 
@@ -196,11 +246,27 @@ void HillPromReaction::print_info ( std::string line_start ) {
 void HillPromReaction::to_file ( std::ofstream& file , std::string line_start ) {
 	
 	file << line_start << "Reaction Type: Hill Promotion Reaction\n";
-	file << line_start << "Index of Promoting Protein: " << _i_promoter << "\n";
-	file << line_start << "Index of Promoted Protein: " << _i_promoted <<  "\n";
-	file << line_start << "Kinetic Rate: " << _kinetic <<  "\n";
-	file << line_start << "K: " << _K << "\n";
-	file << line_start << "Cooperativity: " << _cooperativity << "\n";
 	
+	for (int i = 0 ; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_PROMOTER_LINE:
+				file << line_start << "Index of Promoting Protein: " << _i_promoter << "\n";
+				break;
+			case I_PROMOTED_LINE:
+				file << line_start << "Index of Promoted Protein: " << _i_promoted <<  "\n";
+				break;
+			case KINETIC_LINE:
+				file << line_start << "Kinetic Rate: " << _kinetic <<  "\n";
+				break;
+			case K_LINE:
+				file << line_start << "K: " << _K << "\n";
+				break;
+			case COOPERATIVITY_LINE:
+				file << line_start << "Cooperativity: " << _cooperativity << "\n";
+				break;
+			default:
+				break;
+		}
+	}
 }
 

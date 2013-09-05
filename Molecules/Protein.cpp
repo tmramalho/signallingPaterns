@@ -19,6 +19,36 @@ Protein::Protein( int i_self , int i_root_zero , int i_root_one , double init_co
 	/* _reactions will automatically initiate to empty vector */
 }
 
+Protein::Protein( const Protein& other ) : Molecule( other ) {
+	_i_root_zero = other._i_root_zero;
+	_i_root_one = other._i_root_one;
+	_i_self = other._i_self;
+	_init_conc = other._init_conc;
+}
+
+Protein::Protein( std::ifstream& file ) {
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		file.ignore(256,':');
+		switch (i) {
+			case I_SELF_LINE:
+				file >> _i_self;
+				break;
+			case I_ROOT_ZERO_LINE:
+				file >> _i_root_zero;
+				break;
+			case I_ROOT_ONE_LINE:
+				file >> _i_root_one;
+				break;
+			case INIT_CONC_LINE:
+				file >> _init_conc;
+				break;
+			default:
+				break;
+		}
+	}	
+}
+
 /* Public Method: get_i_root_zero()
  * -------------------------------------------------------------------------- 
  * If this protein is a complex, it returns the index in the dvecs of the 
@@ -47,10 +77,8 @@ int Protein::get_i_root_one() {
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
 
-void Protein::update_indices( int first_index , int num_insertion ) {
-	if (_i_self >= first_index) _i_self += num_insertion;
-	if (_i_root_zero >= first_index) _i_root_zero += num_insertion;
-	if (_i_root_one >= first_index) _i_root_one += num_insertion;
+void Protein::update_mol_indices( int first_index , int num_insertion ) {
+	
 }
 
 /* Public Method: print_info(line_start)
@@ -68,26 +96,26 @@ void Protein::update_indices( int first_index , int num_insertion ) {
 
 void Protein::print_info( std::string line_start ) {
 
-	std::cout << line_start << "Index of Self: " << _i_self << std::endl;
-	
-	if ( _i_root_zero != NEXIST ) {
-		std::cout << line_start << "Index of First Constituent Protein (in Complex): ";
-		std::cout << _i_root_zero << std::endl;
-	}
-	else {
-		std::cout << line_start << "Index of First Constituent Protein (in Complex): "; 
-		std::cout << "NOT A COMPLEX" << std::endl;
-	}
-	
-	if ( _i_root_one != NEXIST ) {
-		std::cout << line_start << "Index of Second Constituent Protein (in Complex): ";
-		std::cout << _i_root_one << std::endl;
-	}
-	else {
-		std::cout << line_start << "Index of Second Constituent Protein (in Complex): "; 
-		std::cout << "NOT A COMPLEX" << std::endl;
-	}
-	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_SELF_LINE:
+				std::cout << line_start << "Index of Self: " << _i_self << "\n";
+				break;
+			case I_ROOT_ZERO_LINE:
+				std::cout << line_start << "Index of First Constituent Protein (in Complex): ";
+				std::cout << _i_root_zero << "\n";
+				break;
+			case I_ROOT_ONE_LINE:
+				std::cout << line_start << "Index of Second Constituent Protein (in Complex): ";
+				std::cout << _i_root_one << "\n";
+				break;
+			case INIT_CONC_LINE:
+				std::cout << line_start << "Initial Concentration: " << _init_conc << "\n";
+				break;
+			default:
+				break;
+		}
+	}	
 }
 
 /* Public Method: to_file(file,line_start)
@@ -96,25 +124,26 @@ void Protein::print_info( std::string line_start ) {
 
 void Protein::to_file( std::ofstream& file , std::string line_start ) {
 	
-	file << line_start << "Index of Self: " << _i_self << "\n";
-	
-	if ( _i_root_zero != NEXIST ) {
-		file << line_start << "Index of First Constituent Protein (in Complex): ";
-		file << _i_root_zero << "\n";
-	}
-	else {
-		file << line_start << "Index of First Constituent Protein (in Complex): "; 
-		file << "NOT A COMPLEX\n";
-	}
-	
-	if ( _i_root_one != NEXIST ) {
-		file << line_start << "Index of Second Constituent Protein (in Complex): ";
-		file << _i_root_one << "\n";
-	}
-	else {
-		file << line_start << "Index of Second Constituent Protein (in Complex): "; 
-		file << "NOT A COMPLEX\n";
-	}
-	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_SELF_LINE:
+				file << line_start << "Index of Self: " << _i_self << "\n";
+				break;
+			case I_ROOT_ZERO_LINE:
+				file << line_start << "Index of First Constituent Protein (in Complex): ";
+				file << _i_root_zero << "\n";
+				break;
+			case I_ROOT_ONE_LINE:
+				file << line_start << "Index of Second Constituent Protein (in Complex): ";
+				file << _i_root_one << "\n";
+				break;
+			case INIT_CONC_LINE:
+				file << line_start << "Initial Concentration: " << _init_conc << "\n";
+				break;
+			default:
+				break;
+		}
+	}	
 }
+
 

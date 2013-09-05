@@ -28,6 +28,37 @@ PromBindingReaction::PromBindingReaction( int i_root_gene , int i_promoted_gene 
 	
 }
 
+PromBindingReaction::PromBindingReaction( std::ifstream& file ) {
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_ROOT_GENE_LINE:
+				file.ignore(256,':');
+				file >> _i_root_gene;
+				break;
+			case I_BOUND_PROTEIN_LINE:
+				file.ignore(256,':');
+				file >> _i_bound_protein;
+				break;
+			case I_PROMOTED_GENE_LINE:
+				file.ignore(256,':');
+				file >> _i_promoted_gene;
+				break;
+			case FORWARD_KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _forward_kinetic;
+				break;
+			case BACKWARD_KINETIC_LINE:
+				file.ignore(256,':');
+				file >> _backward_kinetic;
+				break;
+			default:
+				break;
+		}
+	}
+	
+}
+
 Reaction* PromBindingReaction::copy() {
 	return new PromBindingReaction(_i_root_gene,_i_promoted_gene,_i_bound_protein,_forward_kinetic,_backward_kinetic);
 }
@@ -42,7 +73,7 @@ Reaction* PromBindingReaction::copy() {
  *
  * Returns NEXIST for part_num != 0 or 1.
  */
-int PromBindingReaction::get_i_part( int part_num ) {
+int PromBindingReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:
 			return _i_root_gene;
@@ -53,6 +84,10 @@ int PromBindingReaction::get_i_part( int part_num ) {
 			return NEXIST;
 			break;
 	}
+}
+
+int PromBindingReaction::get_i_dependent_molecule() const {
+	return _i_promoted_gene;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)
@@ -108,16 +143,17 @@ void PromBindingReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_ce
 	/* dx = dt * f(x) + dt * (g(x) * rand * sqrt(q/dt)) */
 	/* This implementation has g(x) = 1 */
 	
+	double root_gene_conc = curr_tissue.at(i_curr_cell , _i_root_gene);
+	double bound_prot_conc = curr_tissue.at(i_curr_cell, _i_bound_protein);
+	double prom_gene_conc = curr_tissue.at(i_curr_cell,_i_promoted_gene);
+	
 	double det_flow = 
-	_forward_kinetic
-	* curr_tissue.at(i_curr_cell , _i_root_gene)
-	* curr_tissue.at(i_curr_cell, _i_bound_protein)
+	_forward_kinetic * root_gene_conc * bound_prot_conc
 	- 
-	_backward_kinetic
-	* curr_tissue.at(i_curr_cell,_i_promoted_gene); 
+	_backward_kinetic * prom_gene_conc; 
 	
 	double rand = dist(generator);
-	double stoc_flow = rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	
@@ -137,7 +173,7 @@ void PromBindingReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_ce
  *
  * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
  */
-void PromBindingReaction::update_indices( int first_index , int num_insertion ) {
+void PromBindingReaction::update_mol_indices( int first_index , int num_insertion ) {
 	/* Note: Because NEXIST = -1, non-existant participants will never be 
 	 * updated by the insertion procedure as desired.
 	 */		
@@ -190,12 +226,30 @@ void PromBindingReaction::mutate ( boost::random::mt19937& generator ) {
  */
 void PromBindingReaction::print_info ( std::string line_start ) {
 	
-	std::cout << line_start << "Reaction Type: Promoter Binding Reaction" << std::endl;
-	std::cout << line_start << "Index of Gene Without Bound Promoter: " << _i_root_gene << std::endl;
-	std::cout << line_start << "Index of Protein Binding to Gene: " << _i_bound_protein << std::endl;
-	std::cout << line_start << "Index of Gene-Protein Complex: " << _i_promoted_gene << std::endl;
-	std::cout << line_start << "Forward Kinetic (binding): " << _forward_kinetic << std::endl;
-	std::cout << line_start << "Backward Kinetic (degredation): " << _backward_kinetic << std::endl;
+	std::cout << line_start << "Reaction Type: Promoter Binding Reaction\n";
+	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_ROOT_GENE_LINE:
+				std::cout << line_start << "Index of Gene Without Bound Promoter: " << _i_root_gene << "\n";
+				break;
+			case I_BOUND_PROTEIN_LINE:
+				std::cout << line_start << "Index of Protein Binding to Gene: " << _i_bound_protein << "\n";
+				break;
+			case I_PROMOTED_GENE_LINE:
+				std::cout << line_start << "Index of Gene-Protein Complex: " << _i_promoted_gene << "\n";
+				break;
+			case FORWARD_KINETIC_LINE:
+				std::cout << line_start << "Forward Kinetic (binding): " << _forward_kinetic << "\n";
+				break;
+			case BACKWARD_KINETIC_LINE:
+				std::cout << line_start << "Backward Kinetic (degredation): " << _backward_kinetic << "\n";
+				break;
+			default:
+				break;
+		}		
+		
+	}
 	
 }
 
@@ -205,13 +259,28 @@ void PromBindingReaction::print_info ( std::string line_start ) {
 void PromBindingReaction::to_file ( std::ofstream& file ,  std::string line_start ) {
 	
 	file << line_start << "Reaction Type: Promoter Binding Reaction\n";
-	file << line_start << "Index of Gene Without Bound Promoter: " << _i_root_gene << "\n";
-	file << line_start << "Index of Protein Binding to Gene: " << _i_bound_protein << "\n";
-	file << line_start << "Index of Gene-Protein Complex: " << _i_promoted_gene << "\n";
-	file << line_start << "Forward Kinetic (binding): " << _forward_kinetic << "\n";
-	file << line_start << "Backward Kinetic (degredation): " << _backward_kinetic << "\n"
-	;
 	
+	for (int i = 0; i < NUM_LINE; i++) {
+		switch (i) {
+			case I_ROOT_GENE_LINE:
+				file << line_start << "Index of Gene Without Bound Promoter: " << _i_root_gene << "\n";
+				break;
+			case I_BOUND_PROTEIN_LINE:
+				file << line_start << "Index of Protein Binding to Gene: " << _i_bound_protein << "\n";
+				break;
+			case I_PROMOTED_GENE_LINE:
+				file << line_start << "Index of Gene-Protein Complex: " << _i_promoted_gene << "\n";
+				break;
+			case FORWARD_KINETIC_LINE:
+				file << line_start << "Forward Kinetic (binding): " << _forward_kinetic << "\n";
+				break;
+			case BACKWARD_KINETIC_LINE:
+				file << line_start << "Backward Kinetic (degredation): " << _backward_kinetic << "\n";
+				break;
+			default:
+				break;
+		}		
+	}
 }
 
 

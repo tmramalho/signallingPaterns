@@ -6,10 +6,11 @@
  *
  */
 
-# include "FitnessFunction.h"
 
 #ifndef TEMPFF_H
 #define TEMPFF_H
+
+# include "FitnessFunction.h"
 
 class TempFF : public FitnessFunction
 {

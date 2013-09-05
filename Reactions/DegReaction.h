@@ -6,11 +6,10 @@
  *
  */
 
-
-# include "Reaction.h"
-
 #ifndef DEGREACTION_H
 #define DEGREACTION_H
+
+# include "Reaction.h"
 
 /* These reactions are of the form:
  *
@@ -24,24 +23,26 @@ class DegReaction : public Reaction {
 	
 public:
 	DegReaction( int i_reac , double kinetic );
+	DegReaction( std::ifstream& file );
 	~DegReaction();
 	
-	virtual Reaction* copy();
+	Reaction* copy();
 	
-	virtual int get_i_part( int part_num );
+	int get_i_part( int part_num ) const;
+	int get_i_dependent_molecule() const;
 	
-	virtual void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell );
-	virtual void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
+	void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell );
+	void react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 					   boost::random::normal_distribution<>& dist , 
 					   boost::random::mt19937& generator , double q);	
 	
-	virtual void update_indices( int first_index , int num_insertion );
+	void update_mol_indices( int first_index , int num_insertion );
 	
-	virtual void mutate ( boost::random::mt19937& generator );
+	void mutate ( boost::random::mt19937& generator );
 	
-	virtual void print_info ( std::string line_start );
+	void print_info ( std::string line_start );
 	
-	virtual void to_file ( std::ofstream& file , std::string line_start );
+	void to_file ( std::ofstream& file , std::string line_start );
 	
 private:
 	
@@ -50,6 +51,11 @@ private:
 	
 	/* Kinetic constants for the reaction. */
 	double _kinetic;
+	
+	/* File Format Variables */
+	static const int NUM_LINE = 2;
+	static const int I_REAC_LINE = 0;
+	static const int KINETIC_LINE = 1;
 	
 	DegReaction(DegReaction* newOne) {}
 	DegReaction& operator=( const DegReaction& rhs ) {return *this;}

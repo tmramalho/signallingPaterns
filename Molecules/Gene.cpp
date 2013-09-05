@@ -13,13 +13,48 @@
  * Constructs gene, reading in data passed to it.
  */
 Gene::Gene( int i_self, int i_product , int i_bound_promoter , int i_root , double init_conc ) {
-	
-	
 	_i_product = i_product;
 	_i_bound_promoter = i_bound_promoter;
 	_i_root = i_root;
 	_i_self = i_self;
 	_init_conc = init_conc;
+}
+
+Gene::Gene( const Gene& other ) : Molecule(other) {
+	_i_product = other._i_product;
+	_i_bound_promoter = other._i_bound_promoter;
+	_i_root = other._i_root;
+}
+
+Gene::Gene( std::ifstream& file ) {
+	
+	for (int i = 0; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_SELF_LINE:
+				file.ignore(256,':');
+				file >> _i_self;
+				break;
+			case I_PRODUCT_LINE:
+				file.ignore(256,':');
+				file >> _i_product;
+				break;
+			case I_BOUND_PROMOTER_LINE:
+				file.ignore(256,':');
+				file >> _i_bound_promoter;
+				break;
+			case I_ROOT_LINE:	
+				file.ignore(256,':');
+				file >> _i_root;
+				break;
+			case INIT_CONC_LINE:
+				file.ignore(256,':');
+				file >> _init_conc;
+				break;
+			default:
+				break;
+		}
+	}
+	
 }
 
 /* Public Method: get_i_product()
@@ -52,6 +87,10 @@ int Gene::get_i_bound_promoter() {
 int Gene::get_i_root() {
 	return _i_root;
 }
+
+void Gene::update_mol_indices( int first_index , int num_insertion ) {
+	
+}
  
 /* Public Method: print_info(line_start)
  * -------------------------------------------------------------------------- 
@@ -66,19 +105,26 @@ int Gene::get_i_root() {
  */
 
 void Gene::print_info( std::string line_start ) {
-	std::cout << line_start << "Index of Self: " << _i_self << std::endl;
-	std::cout << line_start << "Index of Protein This Produces: " << _i_product << std::endl;
-	if ( _i_bound_promoter != NEXIST ) {
-		std::cout << line_start << "Index of Protein Bound to This Gene: " << _i_bound_promoter << std::endl;
-	}
-	else {
-		std::cout << line_start << "Index of Protein Bound to This Gene: NO PROTEINS BOUND TO THIS GENE" << std::endl;
-	}
-	if ( _i_root != NEXIST ) {
-		std::cout << line_start << "Index of Gene This Gene Derived From: " << _i_root << std::endl;
-	}
-	else {
-		std::cout << line_start << "Index of Gene This Gene Derived From: GENE NOT DERIVED FROM SIMPLER GENE" << std::endl;
+	for (int i = 0; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_SELF_LINE:
+				std::cout << line_start << "Index of Self: " << _i_self << "\n";
+				break;
+			case I_PRODUCT_LINE:
+				std::cout << line_start << "Index of Protein This Produces: " << _i_product << "\n";
+				break;
+			case I_BOUND_PROMOTER_LINE:
+				std::cout << line_start << "Index of Protein Bound to This Gene: " << _i_bound_promoter << "\n";
+				break;
+			case I_ROOT_LINE:	
+				std::cout << line_start << "Index of Gene This Gene Derived From: " << _i_root << "\n";
+				break;
+			case INIT_CONC_LINE:
+				std::cout << line_start << "Initial Concentration: " << _init_conc << "\n";
+				break;
+			default:
+				break;
+		}
 	}
 }
 
@@ -87,37 +133,31 @@ void Gene::print_info( std::string line_start ) {
  */
 
 void Gene::to_file( std::ofstream& file , std::string line_start ) {
-	file << line_start << "Index of Self: " << _i_self << "\n";
-	file << line_start << "Index of Protein This Produces: " << _i_product << "\n";
-	if ( _i_bound_promoter != NEXIST ) {
-		file << line_start << "Index of Protein Bound to This Gene: " << _i_bound_promoter << "\n";
+	
+	for (int i = 0; i < NUM_LINE ; i++) {
+		switch (i) {
+			case I_SELF_LINE:
+				file << line_start << "Index of Self: " << _i_self << "\n";
+				break;
+			case I_PRODUCT_LINE:
+				file << line_start << "Index of Protein This Produces: " << _i_product << "\n";
+				break;
+			case I_BOUND_PROMOTER_LINE:
+				file << line_start << "Index of Protein Bound to This Gene: " << _i_bound_promoter << "\n";
+				break;
+			case I_ROOT_LINE:	
+				file << line_start << "Index of Gene This Gene Derived From: " << _i_root << "\n";
+				break;
+			case INIT_CONC_LINE:
+				file << line_start << "Initial Concentration: " << _init_conc << "\n";
+				break;
+			default:
+				break;
+		}
 	}
-	else {
-		file << line_start << "Index of Protein Bound to This Gene: NO PROTEINS BOUND TO THIS GENE" << "\n";
-	}
-	if ( _i_root != NEXIST ) {
-		file << line_start << "Index of Gene This Gene Derived From: " << _i_root << "\n";
-	}
-	else {
-		file << line_start << "Index of Gene This Gene Derived From: GENE NOT DERIVED FROM SIMPLER GENE" << "\n";
-	}
+	
 }
 
-/* Private Method: update_indices(first_index,num_insertion)
- * -------------------------------------------------------------------------- 
- * Updates the index of i_self, i_product, i_bound_promoter, i_root, given an 
- * insertion of size num_insertion of molecules beginning at first_index.
- *
- * FOR NOW WE ONLY CONSIDER INSERTIONS, IE NUMINSERTIONS >= 0. 
- */
 
-void Gene::update_indices( int first_index , int num_insertion ) {
-	/* Because NEXIST = -1, it will never be updated by our insertion 
-	 * procedure, as desired. */
-	if ( _i_self >= first_index ) _i_self += num_insertion;
-	if ( _i_product >= first_index ) _i_product += num_insertion;
-	if ( _i_bound_promoter >= first_index ) _i_bound_promoter += num_insertion;
-	if ( _i_root >= first_index ) _i_root += num_insertion;
-}
 
 
