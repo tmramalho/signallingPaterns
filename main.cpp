@@ -42,6 +42,8 @@
 
 #include "Operations.h"
 
+#include "ManagerDebugger.h"
+
 
 using namespace std;
 
@@ -148,8 +150,7 @@ void collect_algorithm_data() {
 }
 
 void reaction_deletion_debugging() {
-	Manager *m = new Manager(TWO_PROTEIN);
-	
-	
+	ManagerDebugger md;
+	md.reaction_removal_debugging();
 }
 

@@ -46,6 +46,7 @@
 # include "old/helpers/SettingsCont.h"
 # include "nexist.cpp"
 #include "Operations.h"
+#include "ManagerDebugger.h"
 
 using namespace std;
 
@@ -166,6 +167,7 @@ private:
 						  double kinetic , double K , double cooperativity );
 	void add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_prots ,
 						 double kinetic , double K , double cooperativity );
+	void remove_gene( int i_gene );
 	void remove_reaction( int i_reac );
 	void reac_removal_cascade( int i_reac_to_remove ,
 							  std::set<int>& reacs_to_delete ,
@@ -178,7 +180,10 @@ private:
 	void prot_removal_cascade( int i_prot_to_delete , 
 							  std::set<int>& reacs_to_delete ,
 							  std::set<int>& genes_to_delete ,
-							  std::set<int>& prots_to_delete); 
+							  std::set<int>& prots_to_delete);
+	void perform_removal_using_sets(std::set<int>& reacs_to_delete , 
+									std::set<int>& genes_to_delete , 
+									std::set<int>& prots_to_delete);
 	
 	/* Helpers for performing specific mutations */
 	void degredation_mutation ( boost::random::mt19937& generator );
@@ -202,6 +207,10 @@ private:
 	void two_protein_construct();
 	void best_genome_construct();
 	
+	/* FRIEND CLASSES */
+	
+	/* Debugger */
+	friend class ManagerDebugger;
 	
 };
 

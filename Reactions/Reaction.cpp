@@ -57,6 +57,6 @@ int Reaction::update_index( int first_index , int num_insertion , int index ) {
 	else if (num_insertion >= 0) return index + num_insertion;
 	else {
 		if (index < first_index - num_insertion) return NEXIST;
-		else return index - num_insertion;
+		else return index + num_insertion;
 	}	
 }

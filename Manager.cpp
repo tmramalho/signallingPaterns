@@ -785,7 +785,7 @@ void Manager::add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_pro
 	
 	/* Step 2 */
 	int i_reac_zero = i_prot_zero_in_prots + _genes.size();
-	int i_reac_one = i_prot_zero_in_prots + _genes.size();
+	int i_reac_one = i_prot_one_in_prots + _genes.size();
 	_proteins.push_back(new Protein(i_product,i_reac_zero,i_reac_one,0.0));
 	
 	/* Step 3 */
@@ -951,6 +951,17 @@ void Manager::add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_pro
 	}
 }
 
+void Manager::remove_gene( int i_gene ) {
+	std::set<int> reacs_to_delete;
+	std::set<int> genes_to_delete;
+	std::set<int> prots_to_delete;
+	
+	genes_to_delete.insert(i_gene);
+	gene_removal_cascade(i_gene,reacs_to_delete,genes_to_delete,prots_to_delete);
+	
+	perform_removal_using_sets(reacs_to_delete,genes_to_delete,prots_to_delete);
+}
+
 /* Private Method: remove_reaction(i_reac)
  * --------------------------------------------------------------------------
  * WARNING: As this method stands right now, the genes and proteins will not
@@ -967,6 +978,106 @@ void Manager::remove_reaction( int i_reac ) {
 	reacs_to_delete.insert(i_reac);
 	reac_removal_cascade(i_reac,reacs_to_delete,genes_to_delete,prots_to_delete);
 	
+	perform_removal_using_sets(reacs_to_delete,genes_to_delete,prots_to_delete);
+}
+
+void Manager::reac_removal_cascade( int i_reac_to_remove , 
+								   std::set<int>& reacs_to_delete ,
+								   std::set<int>& genes_to_delete , 
+								   std::set<int>& prots_to_delete ) {
+	
+	int i_mol_to_delete = _reactions.at(i_reac_to_remove)->get_i_dependent_molecule();
+	if (i_mol_to_delete == NEXIST) return;
+	
+	if (i_mol_to_delete < _genes.size()) { // if molecule is a gene
+		
+		int genes_size = genes_to_delete.size();
+		genes_to_delete.insert(i_mol_to_delete);
+		/* Return if gene was already in genes_to_delete */
+		if (genes_to_delete.size() == genes_size) return;
+		
+		else gene_removal_cascade( i_mol_to_delete , reacs_to_delete , 
+								 genes_to_delete , prots_to_delete );
+		
+	}
+	
+	else {
+		
+		int i_prot_to_delete = i_mol_to_delete - _genes.size();
+		int prots_size = prots_to_delete.size();
+		prots_to_delete.insert(i_prot_to_delete);
+		/* Return if prot was already in prots_to_delete */
+		if (prots_to_delete.size() == prots_size) return;
+		
+		else prot_removal_cascade( i_prot_to_delete , reacs_to_delete , 
+								 genes_to_delete , prots_to_delete );
+		
+	}
+	
+}
+
+void Manager::gene_removal_cascade( int i_gene_to_delete ,
+								  std::set<int>& reacs_to_delete ,
+								  std::set<int>& genes_to_delete ,
+								  std::set<int>& prots_to_delete ) {
+
+	for ( std::set<int>::iterator it = _genes.at(i_gene_to_delete)->reacs_begin() ; 
+		 it != _genes.at(i_gene_to_delete)->reacs_end(); 
+		 it++ ) {
+		
+		int reacs_size = reacs_to_delete.size();
+		reacs_to_delete.insert(*it);
+		/* If *it wasn't already among those to delete, we cascade */
+		if (reacs_size != reacs_to_delete.size()) reac_removal_cascade(*it,
+																	   reacs_to_delete,
+																	   genes_to_delete,
+																	   prots_to_delete);
+	}
+	
+	/* If this is a base gene, then deleting it should delete the protein as well. */
+	/* Because the protein is not considered dependent on the promotion reaction, 
+	 * we need to eliminate the protein separately */
+	if (_genes.at(i_gene_to_delete)->get_i_root() == NEXIST && 
+		_genes.at(i_gene_to_delete)->get_i_bound_promoter() == NEXIST) {
+		int i_prot_to_delete = _genes.at(i_gene_to_delete)->get_i_product()-_genes.size();
+		int prots_size = prots_to_delete.size();
+		prots_to_delete.insert(i_prot_to_delete);
+		if (prots_size != prots_to_delete.size()) prot_removal_cascade(_genes.at(i_gene_to_delete)->get_i_product()-_genes.size(),
+																	   reacs_to_delete,
+																	   genes_to_delete,
+																	   prots_to_delete);
+	}
+	
+}
+
+void Manager::prot_removal_cascade( int i_prot_to_delete ,
+								   std::set<int>& reacs_to_delete ,
+								   std::set<int>& genes_to_delete ,
+								   std::set<int>& prots_to_delete ) {
+	
+	
+	std::set<int>::iterator it = _proteins.at(i_prot_to_delete)->reacs_begin();
+	int test = *it;
+	test = test;
+	
+	for ( std::set<int>::iterator it = _proteins.at(i_prot_to_delete)->reacs_begin() ;
+		 it != _proteins.at(i_prot_to_delete)->reacs_end() ;
+		 it++ ) {
+		
+		int reacs_size = reacs_to_delete.size();
+		reacs_to_delete.insert(*it);
+		/* If *it wasn't already among those to delete, we cascade */
+		if (reacs_size != reacs_to_delete.size()) reac_removal_cascade(*it,
+																	   reacs_to_delete,
+																	   genes_to_delete,
+																	   prots_to_delete);
+	}
+	
+}
+
+void Manager::perform_removal_using_sets(std::set<int>& reacs_to_delete,
+										  std::set<int>& genes_to_delete,
+										  std::set<int>& prots_to_delete) {
 	/* Delete reactions */
 	while (!reacs_to_delete.empty()) {
 		int i_deletion = *reacs_to_delete.begin();
@@ -1000,6 +1111,7 @@ void Manager::remove_reaction( int i_reac ) {
 		for (std::set<int>::iterator it = genes_to_delete.begin(); it != genes_to_delete.end(); it++) {
 			updates.insert(updater(*it));
 		}
+		_num_mol--;
 		delete _genes.at(i_deletion);
 		for	( int i = i_deletion +1 ; i < _genes.size() ; i++ ) {
 			_genes.at(i-1) = _genes.at(i);
@@ -1020,6 +1132,7 @@ void Manager::remove_reaction( int i_reac ) {
 			updates.insert(updater(*it));
 		}
 		delete _proteins.at(i_deletion);
+		_num_mol--;
 		for (int i = i_deletion+1; i < _proteins.size() ; i++) {
 			_proteins.at(i-1) = _proteins.at(i);
 		}
@@ -1027,83 +1140,8 @@ void Manager::remove_reaction( int i_reac ) {
 		prots_to_delete = updates;
 		prots_to_delete.erase(NEXIST);
 	}
-
-}
-
-void Manager::reac_removal_cascade( int i_reac_to_remove , 
-								   std::set<int>& reacs_to_delete ,
-								   std::set<int>& genes_to_delete , 
-								   std::set<int>& prots_to_delete ) {
-	
-	int i_mol_to_delete = _reactions.at(i_reac_to_remove)->get_i_dependent_molecule();
-	if (i_mol_to_delete == NEXIST) return;
-	
-	if (i_mol_to_delete < _genes.size()) { // if molecule is a gene
-		
-		int genes_size = genes_to_delete.size();
-		genes_to_delete.insert(i_mol_to_delete);
-		/* Return if gene was already in genes_to_delete */
-		if (genes_to_delete.size() == genes_size) return;
-		
-		else gene_removal_cascade( i_mol_to_delete , reacs_to_delete , 
-								 genes_to_delete , prots_to_delete );
-		
-	}
-	
-	else {
-		
-		int i_prot_to_delete = i_mol_to_delete - _genes.size();
-		int prots_size = prots_to_delete.size();
-		prots_to_delete.insert(i_prot_to_delete);
-		/* Return if prot was already in prots_to_delete */
-		if (prots_to_delete.size() == prots_size) return;
-		
-		else prot_removal_cascade( i_mol_to_delete , reacs_to_delete , 
-								 genes_to_delete , prots_to_delete );
-		
-	}
 	
 }
-
-void Manager::gene_removal_cascade( int i_gene_to_delete ,
-								  std::set<int>& reacs_to_delete ,
-								  std::set<int>& genes_to_delete ,
-								  std::set<int>& prots_to_delete ) {
-
-	for ( std::set<int>::iterator it = _genes.at(i_gene_to_delete)->reacs_begin() ; 
-		 it != _genes.at(i_gene_to_delete)->reacs_end(); 
-		 it++ ) {
-		
-		int reacs_size = reacs_to_delete.size();
-		reacs_to_delete.insert(*it);
-		/* If *it wasn't already among those to delete, we cascade */
-		if (reacs_size != reacs_to_delete.size()) reac_removal_cascade(*it,
-																	   reacs_to_delete,
-																	   genes_to_delete,
-																	   prots_to_delete);
-	}
-}
-
-void Manager::prot_removal_cascade( int i_prot_to_delete ,
-								   std::set<int>& reacs_to_delete ,
-								   std::set<int>& genes_to_delete ,
-								   std::set<int>& prots_to_delete ) {
-	
-	for ( std::set<int>::iterator it = _proteins.at(i_prot_to_delete)->reacs_begin() ;
-		 it != _proteins.at(i_prot_to_delete)->reacs_end() ;
-		 it++ ) {
-		
-		int reacs_size = reacs_to_delete.size();
-		reacs_to_delete.insert(*it);
-		/* If *it wasn't already among those to delete, we cascade */
-		if (reacs_size != reacs_to_delete.size()) reac_removal_cascade(*it,
-																	   reacs_to_delete,
-																	   genes_to_delete,
-																	   prots_to_delete);
-	}
-	
-}
-
 
 /* Private Method: degredation_mutation(generator)
  * -------------------------------------------------------------------------- 

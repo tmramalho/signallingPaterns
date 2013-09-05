@@ -83,7 +83,7 @@ int PromReaction::get_i_dependent_molecule() const {
 	 * Thus, there is a question whether the protein should be 
 	 * considered dependent on the gene.
 	 */
-	return _i_prot;
+	return NEXIST;
 }
 
 /* Public method: react(curr_tissue,dx_dt,i_curr_cell)

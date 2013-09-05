@@ -45,7 +45,9 @@ double Molecule::get_init_conc() {return _init_conc;}
  * Rather, the manager does. The molecule, even in its destructor, should 
  * never delete these reactions.
  */
-void Molecule::add_reaction( int i_reac ) {_reactions.insert(i_reac);}
+void Molecule::add_reaction( int i_reac ) {
+	_reactions.insert(i_reac);
+}
 
 void Molecule::update_reac_indices( int first_index , int num_insertion ) {
 	
@@ -59,15 +61,19 @@ void Molecule::update_reac_indices( int first_index , int num_insertion ) {
 	_reactions.erase(NEXIST);	
 }
 
-std::set<int>::iterator Molecule::reacs_begin() const {return _reactions.begin();}
+std::set<int>::iterator Molecule::reacs_begin() const {
+	return _reactions.begin();
+}
 
-std::set<int>::iterator Molecule::reacs_end() const {return _reactions.end();}
+std::set<int>::iterator Molecule::reacs_end() const {
+	return _reactions.end();
+}
 
 int Molecule::update_index( int first_index , int num_insertion , int index ) {
 	if (index < first_index) return index;
 	else if (num_insertion >= 0) return index + num_insertion;
 	else {
 		if (index < first_index - num_insertion) return NEXIST;
-		else return index - num_insertion;
+		else return index + num_insertion;
 	}	
 }
