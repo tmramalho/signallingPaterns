@@ -124,7 +124,7 @@ void DegReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 	double det_flow = _kinetic * curr_tissue.at(i_curr_cell,_i_reac); 
 	
 	double rand = dist(generator);
-	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
+	double stoc_flow = curr_tissue.at(i_curr_cell,_i_reac) * rand * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	

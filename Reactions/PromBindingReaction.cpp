@@ -152,8 +152,10 @@ void PromBindingReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_ce
 	- 
 	_backward_kinetic * prom_gene_conc; 
 	
-	double rand = dist(generator);
-	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
+	double forward_rand = dist(generator);
+	double backward_rand = dist(generator);
+	double stoc_flow = (forward_rand * root_gene_conc * bound_prot_conc 
+						- backward_rand * prom_gene_conc ) * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	

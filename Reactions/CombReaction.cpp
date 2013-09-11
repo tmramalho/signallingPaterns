@@ -171,8 +171,10 @@ void CombReaction::react( dmat& curr_tissue , dmat& dx_dt , int i_curr_cell ,
 	-
 	_backward_kinetic * prod_conc;
 	
-	double rand = dist(generator);
-	double stoc_flow = det_flow * rand * sqrt(q/(_sc_ref->_dt));
+	double forward_rand = dist(generator);
+	double backward_rand = dist(generator);
+	double stoc_flow = (forward_rand * reac_zero_conc * reac_one_conc 
+						- backward_rand * prod_conc) * sqrt(q/(_sc_ref->_dt));
 	
 	double flow = det_flow + stoc_flow;
 	

@@ -71,10 +71,12 @@ using namespace std;
 
 void collect_algorithm_data();
 void reaction_deletion_debugging();
+void collier_delta_notch_run();
+void test_genome_in_file();
 
 int main () {
-	
-	reaction_deletion_debugging();
+
+	test_genome_in_file();
 	
 	return 0;
 }
@@ -85,16 +87,16 @@ void collect_algorithm_data() {
 	std::ofstream file;
 	EvAlgorithm alg_type;
 	
-	for (int i = 0; i < 3; i++) {
+	for (int i = 2; i < 3; i++) {
 		if (i == 0) alg_type = ALG1;
 		if (i == 1) alg_type = ALG2;
 		if (i == 2)	alg_type = ALG3;
 		
-		for (int j = 0; j < 10; j++) {
+		for (int j = 5; j < 10; j++) {
 			
 			Evolution *ev = new Evolution(&ff);
 			ev->colonize(TWO_PROTEIN);
-			Manager* best_ref = ev->train(alg_type,i+1);
+			Manager* best_ref = ev->train(alg_type,j+1);
 			
 			vector<Lineage*> lineages = ev->create_lineages();
 			
@@ -152,5 +154,37 @@ void collect_algorithm_data() {
 void reaction_deletion_debugging() {
 	ManagerDebugger md;
 	md.reaction_removal_debugging();
+}
+
+void collier_delta_notch_run() {
+	Manager *m = new Manager(COLLIER_DELTA_NOTCH);
+	m->initialize();
+	ofstream file;
+	file.open("genome.txt");
+	m->genome_to_file(file,"\t");
+	file.close();
+	file.open("integration.txt");
+	unsigned seed = std::time(0);
+	boost::random::mt19937 generator(seed);
+	m->integrate(10000,generator,file);
+	file.close();
+}
+
+void test_genome_in_file() {
+	
+	unsigned seed = std::time(0);
+	boost::random::mt19937 generator(seed);
+	
+	ifstream file;
+	file.open("alg2/run2/best_genome.txt");
+	Manager *m = new Manager(file);
+	file.close();
+	
+	ofstream output;
+	output.open("alg2/run2/best_genome_test2.txt");
+	m->initialize();
+	m->integrate(50000, generator, output);
+	output.close();
+	
 }
 
