@@ -1,0 +1,669 @@
+Simulating Genetics Documentation
+
+LINEBREAK
+LINEBREAK
+
+MANAGER CLASS
+
+CROSSLINE
+
+Manager objects should be thought of as instances of genetic networks, with the capability of integrating those networks using various numerical methods as well as mutating themselves.
+
+LINEBREAK
+LINEBREAK
+
+*** Data Storage ***
+
+LINEBREAK
+
+The following are the key data structures contained by the Manager 
+class, each which we explain in turn:
+
+LINEBREAK
+SETINDENT 1
+LINEBREAK
+
+	_curr_tissue
+
+	LINEBREAK
+
+	Conceptually, a matrix of doubles, each representing the concentration of a protein or gene in a particular cell. It is a dmat object, where dmat is an extension of the dvec class that uses 2-dimensional indexing. Each row represents a cell in our tissue. Each column a particular gene or protein. Thus, to each gene or protein we assign an index, which refers to the column in the dmat it is stored in. This will be how we refer to genes or proteins in other parts of the code. 
+
+NEWPARAGRAPH
+
+The Manager class is responsible for keeping track of these indices and keeping them consistent. The following convention is used: the lowest indices refer to genes, the highest to proteins. Thus, if there are ng genes and np proteins, indices 0 through ng-1 are for genes, ng through ng + np - 1 are for proteins.
+
+LINEBREAK
+LINEBREAK
+
+	_reactions
+
+LINEBREAK
+
+	A vector containing pointers to Reaction objects. Reaction objects contained detailed information necessary for characterizing interactions in our network. The _reactions contains all of the reactions participating in our network. See below for detailed information about the Reaction class.
+
+LINEBREAK
+LINEBREAK
+
+	_genes
+
+LINEBREAK
+
+	A vector containing pointers to Gene objects. Gene objects contain the detailed information relevant to each gene. In particular, its index (ie. its column in _curr_tissue) and the index of the protein it promotes. We also consider gene-protein complexes to be genes, and thus, a Gene will also contain the indices of both the root gene and binding protein making up this complex. The integer NEXIST is used as the index when the gene is not a protein, and thus these root genes and proteins do not exist. Each Gene objects also contains a vector of pointers to Reaction objects. These Reaction objects are the reactions in which the gene takes part (ie. reactions it affects, is affected by, or both). The order of the genes in the _genes vector is the same as their order in the _curr_tissue dmat.
+
+LINEBREAK
+LINEBREAK
+
+	_proteins
+
+LINEBREAK
+
+	A vector containing pointers to Protein objects. Protein objects, like Gene objects, contain the relevant information relevant to each protein. In particular, its index (ie. its column in _curr_tissue). We also consider protein-protein complexes to be proteins. Thus, it also stores the indices of these two root proteins (which could be the same for a dimer). NEXIST is used in the same way it is used for Genes (ie. as the stored index when the gene is not a complex, so has no root proteins from which it is derived. Like Gene objects, Protein objects contain a vector of pointers to Reaction objects, referring to the reactions in which the protein takes part. The order of the proteins in the _proteins vector is the same as their order in the _curr_tissue dmat. Because the indices of proteins in the _curr_tissue mat are after the indices of _genes, this means that if a protein has index i_prot in the _curr_tissue dmat, in the _proteins vector it will have index i_prot_in_prots = i_prot - num_gene. (The index the protein stores is i_prot, NOT i_prot_in_prots).
+
+SETINDENT 0
+LINEBREAK
+LINEBREAK
+
+*** Construction ***
+
+LINEBREAK
+
+We allow there to be several different ways to construct a manager object. The constructor takes a ConstructionType variable that describes this method, and the constructor than calls the corresponding helper method for that construction method.
+
+LINEBREAK
+
+Right now the following methods are available
+
+SETINDENT 1
+LINEBREAK
+
+	1. HAKIM_DELTA_NOTCH: Manager initialized with a genome that uses only Hakim type interactions within the cell and a Lateral Hill Promotion reaction to recreate the type of lateral inhibition in Delta-Notch interactions. Limited Success so far.
+
+LINEBREAK
+
+	2. COLLIER_DELTA_NOTCH: Manager initialized with a genome that uses Hill reactions directly the create the Delta-Notch model examined in Collier et al.
+
+LINEBREAK
+ 
+	3. MUTATION: Manager initialized by first adding one gene and a protein, and then calling mutate 5 times.
+
+LINEBREAK
+
+	4. ONE_PROTEIN: Manager initialized with one gene and one protein, with the promotion and degradation rates both equal to 1.0. 
+
+SETINDENT 0
+LINEBREAK
+LINEBREAK
+
+The aspects of construction that are the same for all construction methods is initializing _sc_ref to point to the SettingsCont, and setting the number of cells. These parts are handled outside of the helper functions called for the various methods. 
+
+LINEBREAK
+LINEBREAK
+
+*** Integration ***
+
+LINEBREAK
+
+See Integration section below.
+
+LINEBREAK
+LINEBREAK
+
+*** Places for Caution ***
+
+LINEBREAK
+
+1. Two different Managers should never point to the same gene, protein, or reaction object in their _genes, _proteins, or _reactions vectors. This is because Managers delete the genes, proteins, and reactions they point at their own destruction or during mutation. Referencing them by multiple managers will lead to EXC_BAD_ACCESS errors. Rather, copies of the same reaction in two different genomes should hold copies of the gene, protein, or reactions involved, where a copy means all the the indices and kinetic constants are the same between the two. 
+
+LINEBREAK
+LINEBREAK
+
+REACTION CLASS
+
+CROSSLINE
+
+Reaction is an abstract class. Each Reaction subclass contains all the information relevant to running a particular reaction. All reactions can be characterized by three types of information:
+
+SETINDENT 1
+LINEBREAK
+
+	1. The substances that participate in a reaction. These are stored as the indices of the relevant substances in the _curr_tissue vector, as stored in the Manager class.
+
+LINEBREAK
+
+	2. A set of kinetic rates that characterize reaction rates. The number of and role of these kinetic rates will depend on the type of reaction. Thus, these are doubles specified by each Reaction subclass.
+
+LINEBEAK
+
+	3. How to take the concentrations of the relevant substances, and calculate the resulting rates of change in their concentrations due to the reaction, according the the reaction type and kinetic constants. This is contained in the particular instantiation of the pure abstract method react of the abstract class. We now explain this method in more detail.
+
+SETINDENT 0
+LINEBREAK
+LINEBREAK
+
+*** The react Method ***
+
+LINEBREAK
+
+The react method accepts a copy of the _curr_tissue dmat, passed by reference, a mat called dx_dt also passed by reference, and the index of the cell in our _curr_tissue (ie. the row) in which we are to apply this reaction. 
+
+NEWPARAGRAPH
+
+The dx_dt mat should be of the same dimensions as _curr_tissue. The react method will look at the concentrations of the relevant substances in the _curr_tissue vector, according the the index of the cell passed to it and the indices of the relevant substances which it stores, and then, using the kinetic constants it stores, calculate the rate of change of all substances affected by this reaction.
+
+NEWPARAGRAPH
+
+It will then add to the dx_dt vector these rates of change, which, because it was passed by reference, will be available after the function has returned. 
+
+NEWPARAGRAPH
+
+There is also a stochastic version of the react method, which will randomly modify the rate of change it adds to the dx_dt vector, but in such a way to maintain things like conservation of mass. This react method is distinguished by its also receiving the arguments for a random number generator and distribution passed by reference, as well as a noise parameter q.
+
+NEWPARAGRAPH
+
+See documentation on integration for more on the functioning of the react method.
+
+LINEBREAK
+LINEBREAK
+
+INTEGRATION
+
+CROSSLINE
+
+To perform one time step of our integration, we need to calculate a dx_dt dmat, representing the rates of change of all substances of all cells of our _curr_tissue dmat, due to all reactions in our genome. Because of the variety of reactions we would like to accommodate, we may not be able to reduce the calculation of the dx_dt dmat to some easily parameterized calculation, like matrix multiplication.
+
+NEWPARAGRAPH
+
+What we do expect is that the effects of different reactions should combine linearly. For example, the rate of change of a protein's concentration could be affected by a promoting reaction (the protein's concentration increases due to the presence of a gene), a degradation reaction (a proteins concentration decreases due to its own presence), and a Hill-type interaction with another protein. To calculate the total rate of change of the protein's concentration, we calculate the rates of change due to all these reactions and compute their sum.
+
+NEWPARAGRAPH
+
+After doing this, we multiply dx_dt by dt and add to the _curr_tissue vector to update _curr_tissue at the next time step.
+
+NEWPARAGRAPH
+
+To calculate the sums of reaction rates, we at each time step begin by setting the dx_dt dmat to zero. Then, pass this vector one at a time to the react methods of the Reaction object. As described above, each react method will simply add the reaction rates it calculates to the dx_dt vector, without regard for what is already stored in the dx_dt vector. Once we have done this for each reaction and each cell, we will have the result we want.
+
+LINEBREAK
+LINEBREAK
+
+*** Stochastic Integration ***
+
+LINEBREAK
+
+The only additional issue potentially introduced by stochastic integration is that for a particular time step, the deterministic rates of change will be multiplied by dt in calculating the next state, and the stochastic changes by sqrt(dt). Thus, if we crudely added randomness to the dx_dt vector and multiplied by dt, we would not appropriately represent the stochasticity.
+
+NEWPARAGRAPH
+
+To deal with this but maintain the implementation in which each reaction manages calculating rates of change separately, we implement a react method which accepts a random number generator, distribution, and noise parameter q. It adds to the dx_dt dmat it receives by reference the deterministic rate of change plus the stochastic rate of change divided by sqrt(dt). Thus, the dx_dt vector, in this case, holds
+
+INCREMENTINDENT 1
+LINEBREAK
+LINEBREAK
+
+	det_rate + stc_rate/sqrt(dt)
+
+INCREMENTINDENT -1
+LINEBREAK
+LINEBREAK
+
+When we finish calculating the dx_dt vector, we can, as before, simply update _curr_state by adding dx_dt*dt which is
+
+INCREMENTINDENT 1
+LINEBREAK
+LINEBREAK
+
+	(det_rate + stc_rate/sqrt(dt)) * dt
+
+INCREMENTINDENT 1
+LINEBREAK
+LINEBREAK
+		
+		=
+
+INCREMENTINDENT -1
+LINEBREAK
+LINEBREAK
+
+	det_rate * dt + stc_rate * sqrt(dt) 
+
+INCREMENTINDENT -1
+LINEBREAK
+LINEBREAK
+
+as desired. We should only note that now, the meaning of the contents of the dx_dt vector, at least mathematically, is not that clear. It is simply the number that when multiplied by dt will give us the appropriate updates.
+
+NEWPARAGRAPH
+
+The only issue remaining is how each reaction object can know the dt for the current integration, which is NOT passed to it. It turns out that this information is held in by the SettingsCont, which holds other global settings for any given run of our computation and optimization. Each reaction objects holds a pointer to this SettingCont object, and thus has access to this information, also accessible to the Manager class when it must calculate dx_dt * dt. Externalizing this dt in the SettingsCont maintains its consistency in all parts of the calculation.
+
+LINEBREAK
+LINEBREAK
+
+*** initialize() ***
+
+LINEBREAK
+
+See the description of this method under the MUTATION section for a description of what it does regarding integration.
+
+LINEBREAK
+LINEBREAK
+
+TISSUE GEOMETRY
+
+CROSSLINE
+
+Although the data for a particular cell is stored simply as a row of the _curr_tissue, we may not want the geometry of our tissue to be necessarily a 1-dimensional line of cells. Our program should also be able to accommodate square lattices, or even triangular, hexagonal, or more complicated geometries.
+
+NEWPARAGRAPH
+
+The geometry of the tissue becomes relevant for the react methods of intercellular reactions. An intercellular reaction is one in which when asked to calculate the rates of change of concentrations in a 
+given cell c due to the particular reaction, the reaction must look at the concentrations of certain substances in c's neighbors. 
+
+NEWPARAGRAPH
+
+We need some way for the system to know which are cell c's neighbors. For a linear geometry this is easy (cell c+1 and c-1, with edge exceptions), but for other geometries it may be more complicated. To accommodate this, we simply store in the SettingsCont that holds a vector which holds, for each cell, the index in _curr_tissue of all of the cells neighbors. Thus, this is a vector<vector<int>*>. The react methods can access this vector when it needs to know the neighbors of the current cell c.
+
+NEWPARAGRAPH
+
+For example, if we have a 2x2 tissue, we might index the cells from left to right, top to bottom, as
+
+INCREMENTINDENT 2
+LINEBREAK
+LINEBREAK
+
+		1       2
+
+LINEBREAK
+LINEBREAK
+
+		3       4
+
+INCREMENTINDENT -2
+LINEBREAK
+LINEBREAK
+
+Then, our vector of neighbors would look like this:
+
+INCREMENTINDENT 2
+LINEBREAK
+LINEBREAK
+
+		< [2,3] , [1,4] , [1,4] , [2,3] >
+
+INCREMENTINDENT -2
+LINEBREAK
+LINEBREAK
+
+Note listing the neighbors of each cell contains all the information related to the tissue geometry that is relevant to our network. Of course, a more involved data-structure would need to be designed if we also wanted to include direction or different levels of interactions between cells in the effect of certain reactions.
+
+LINEBREAK
+LINEBREAK
+
+*** set_neighbors ***
+
+LINEBREAK
+
+In order to easily be able to specify, in code, the neighbors vector, we create a method that constructs the vector from an input string that sets the geometry. The string format must follow the following format exactly for successful read-in.
+
+NEWPARAGRAPH
+
+Different elements of the neighbors vector for a given cell are delineated with commas ','. Different cells are delineated by vertical lines '|'. The delineation characters only follow elements of the vectors, but do not precede them. In particular, every vertical line will  necessarily be preceded by a comma: you cannot end the neighbors vector for a given cell without first ending the last element of the neighbors vector.
+
+NEWPARAGRAPH
+
+Therefore the vector:
+
+INCREMENTINDENT 1
+LINEBREAK
+LINEBREAK
+
+<{1} {0,2} {1}>
+
+INCREMENTINDENT -1
+LINEBREAK
+LINEBREAK
+
+is given by the string
+
+INCREMENTINDENT 1
+LINEBREAK
+LINEBREAK
+
+1,|0,2,|1,|
+
+SETINDENT 0
+
+LINEBREAK
+LINEBREAK
+
+MUTATION
+
+CROSSLINE
+
+*** Adding Reactions ***
+
+LINEBREAK
+
+Mutations rely on a set of private methods in the Manager class that enable us to add a reaction to the network.
+
+NEWPARAGRAPH
+
+Each type of reaction has a corresponding add method, which accepts the indices of the genes and proteins in the reaction and the kinetic rates of the reaction (the number of these will depend on the reaction type). It then adds this reaction to the genome. Sometimes a reaction will also add a substance to the genome: for example, the dimerization of two proteins will also require adding the dimer to the list of proteins of the reaction.
+
+NEWPARAGRAPH
+
+Thus, the following maintenance operations must be performed.
+
+SETINDENT 1
+LINEBREAK
+
+	1. If we add any substances to our genome through insertion into the _genes or _proteins vectors, we may change the indices of already existing substances. We must go through all genes and proteins and change the relevant indices they store, ie. their own index and the index of things like their root proteins they derive from or, for genes, the proteins they promote. We must go through all existing reactions and update these indices as well. These updates are handled by update_indices methods in the Manager, Gene, Protein, and Reaction classes.
+
+LINEBREAK
+
+	2. We must add the new reaction to the _reactions vectors of all the genes and proteins participating in the reaction.
+
+SETINDENT 0
+LINEBREAK
+LINEBREAK
+
+*** mutate() ***
+
+LINEBREAK
+
+Mutations are divided into various types. Each type performs a mutation in a different way, but in general, will pick randomly from the different types of reaction additions and the different potential participants in that reaction, and then call the reaction addition method for that reaction and those participants.
+
+NEWPARAGRAPH
+
+The mutate() method acts by picking at random a mutation type, and then calling the private method for that mutation type.
+
+NEWPARAGRAPH
+
+Randomness comes in in first picking the mutation type, and second, within that mutation type picking the reaction type and participants according to that reaction.
+
+NEWPARAGRAPH
+
+The only part of the process accessible publicly is the mutate method, though we could consider adding easy customizability features by having the different mutation methods call on parameters held in the SettingsCont describing the probabilities of various types of mutations, and other similar things we might wish to control.
+
+LINEBREAK
+LINEBREAK
+
+*** initialize() ***
+
+LINEBREAK
+
+The initialize method is called before integration to make sure things are set up for integration. The most important thing it does is resize the _curr_tissue dmat. Indeed, if some substances have been added due to a mutation procedure, in order to integrate, we need to add  columns to our dmat or our integration will fail.
+
+NEWPARAGRAPH
+
+It also sets the initial concentrations of the substances in these dmats. Each protein and gene object holds information about what its initial concentration is in integration, thus allowing us to integrate within a Manager object multiple times, resetting each time.
+
+NEWPARAGRAPH
+
+Finally, it sets the time = 0 again.
+
+LINEBREAK
+LINEBREAK
+
+*** remove_reaction ***
+
+LINEBREAK
+
+Removing reactions depends on a cascade of dependencies. For example, if we remove a Combination reaction, we also need to remove all of the reactions that involve the complex that reaction produces. The removal of these new reactions may require removing further substances, and so on.
+
+NEWPARAGRAPH
+
+Thus, reaction removal creates sets reacs_to_delete, genes_to_delete, prots_to_delete, which will store all of the elements that must be removed due to the removal of our reaction. 
+
+NEWPARAGRAPH
+
+Every reaction has a get_i_dependent_molecule() that returns the molecule in the genome whose existence depends on this reaction. Eg. for a combination reaction, this method returns the index of the complex. Some reaction have no molecules that depend on them for their existence (eg. Hill Promotion). In this case, get_i_dependent_molecule() returns NEXIST. 
+
+NEWPARAGRAPH
+
+Thus, when we remove a reaction, we only need to also remove its dependent molecule (of which there is at most one). When we remove a molecule, however, we must remove all reactions that it participates in any way in. This information is held by the _reactions vector of each molecule object. 
+
+LINEBREAK
+LINEBREAK
+
+*** remove_gene() ***
+
+LINEBREAK
+
+Removing a gene operates essentially equivalently to removing a reaction, except that the dependencies are a little different. Note that a promotion reaction a -> A does NOT consider A to be a dependent molecule on it. This is because something like a Hill Promotion can lead to the production of A without the explicit presence of the gene a.
+
+NEWPARAGRAPH
+
+However, we do want to maintain the convention that if we remove the gene a (and not just the promotion reaction a->A), we remove the protein A. We do not however want to remove A when we remove a complex including a (eg. a:B). Thus, gene removal cascades act just like any molecule or reaction, with the additional dependency that in the case that a is a base gene (ie not a complex), we also remove the protein A.
+
+NEWPARAGRAPH
+
+We check to see if a is a base gene by checking that its indices _i_root and _i_bound_promoter are NEXIST.
+
+LINEBREAK
+LINEBREAK
+
+EVOLUTION DATA TRACKING
+
+CROSSLINE
+
+
+*** Data Tracking: Organisms ***
+
+LINEBREAK
+
+The data tracking built into the evolution procedures attempts to create a complete picture of the evolutionary algorithm's operation. Each step of the evolutionary algorithm involves copying each manager in the current generation, mutating some of the copies, and then having the 2*pop_size managers (parents and offspring) compete to get into the next generation.
+
+LINEBREAK
+
+We wish to create an evolutionary tree, depicted below
+
+NEWPARAGRAPH
+
+[Insert Graphic: PhylogenyGraphic.txt]
+
+NEWPARAGRAPH
+
+Graphic of 5 generations in a phylogeny with population size of 3. Note 3 out of 6 organisms (and thus managers) are selected each generation. The left organism would correspond to the cop offspring, the right organism to the mutate offspring.
+
+NEWPARAGRAPH
+
+We create an evolutionary tree where each node represented the presence of a Manager at a given generation. Thus, for each generation there are 2*pop_size organisms tracking data: one represents the mutate of the parent manager from the previous generation, and one represents the parent manager itself (ie the copy).
+
+NEWPARAGRAPH
+
+We then for each organism store all of the evaluations that occurred to that manager in that generation. (So for example, in the algorithms that assign permanent scores, only organisms that represent mutant offspring, not copy offspring, will ever have evaluations stored in them). Further, we store for each organisms whether or not it mutated. An organism having mutated means that that genetic network experienced a mutation at that generation. The Organism also stores pointers to the organisms that represent its offspring in the next generation: either the copy of the corresponding manager or the mutate of the corresponding parent manager. These pointers are NULL when the organism has no offspring. This corresponds to the Manager this organism represents not making it into the generations population.
+
+NEWPARAGRAPH
+
+These organisms thus comprise a linked tree that represents the evolutionary tree of the algorithm. Due to it's linked structure, we can traverse it in the same way we would a linked list. 
+
+NEWPARAGRAPH
+
+Finally, each Organism has an index variable. This variable is not set during the running of the evolutionary algorithm. Rather, it is only set during file output. The file we write the list of organisms (called a phylogeny) to will have each organism and all of its internal data listed in sequence. One of the pieces of internal data is the location in memory of the offspring. Of course in file output, this is of no use to use as the Organisms themselves are deleted after the program finishes. What we really need are the location in this list of organisms in the output file the offspring are. Thus, we assign each organism an index, which will serve basically as its address in this outputted file. The organisms are listed in the output file in increasing index order. This is achieved by having the assign_index function and phylogeny_to_file functions recursively traverse the linked tree in the same way.
+
+LINEBREAK
+LINEBREAK
+
+*** Data Output: Lineages ***
+
+LINEBREAK
+
+Above I discussed the evolutionary tree represented by the organism objects, which we output to a phylogeny file. In addition to the linked tree, whose structure is stored in the linking structure of the organism objects, we want to easily be able to look at specific paths in this tree, what I will call a lineage.
+
+NEWPARAGRAPH
+
+A lineage is basically a path from the top of the tree to the bottom of the tree. We are interested in, for example, the longest lineages, as these are the evolutionary paths taken by our most successful genomes. 
+
+NEWPARAGRAPH
+
+By traversing the tree recursively, we can construct every lineage or path in it. The lineage has a length, has a vector of all the evaluations that occurred in this lineage, a corresponding vector storing the generation that all of these evaluations occurred, and a vector listing the generations in which mutations occurred in this lineage.
+
+NEWPARAGRAPH
+
+We construct lineages by recursively traversing the phylogeny of organisms. Every time we come to a fork in the tree (ie, an organism with a copy and mutant offspring), we will have two separate groups of lineages: those that follow from that node to the copy offspring, and those that follow from that node to the mutant offspring.
+
+NEWPARAGRAPH
+
+Our recursive create_lineages function receives a vector of lineages by reference, and when it comes to a fork in the tree, copies the current lineage (which will be stored at the last position of the lineages vector). Then it calls the create_lineages function on the copy_offspring prior to adding to the vector the copied lineage. If our function operates correctly, when this returns, ALL lineages emanating from this copy offspring will have been added to the back of our vector. We then add the copy we made of the lineage to the lineages vector and call create_lineages again on the mutant offspring.
+
+LINEBREAK
+LINEBREAK
+
+CONVENTIONS
+
+CROSSLINE
+
+Variable Names
+
+SETINDENT 1
+LINEBREAK
+LINEBREAK
+
+	- part: general name for either a reactant or product in a reaction. Short for "participant".
+
+LINEBREAK
+LINEBREAK
+
+	- mol: to refer to a substance without consideration of which reaction it participates in, or to its specific type, like GENE, PROTEIN, etc. E.g. sed in the ODEManager class.
+
+LINEBREAK
+LINEBREAK
+
+	- prot: to refer to a protein.
+
+LINEBREAK
+LINEBREAK
+
+	- gene: to refer to a gene.
+
+LINEBREAK
+LINEBREAK
+
+	- root: to refer to something from which something else is derived. For example, in a protein complex, the complex would refer to the proteins that make it up using 'root'.
+
+LINEBREAK
+LINEBREAK
+	
+	- react: to refer to a reaction.
+
+LINEBREAK
+LINEBREAK
+
+	- num: when it precedes, it means number of. When it follows, it means which one. Thus, numPart is the number of participants in a reaction. For A + B <--> C, numPart is 3. partNum refers to where a particle is in the reaction, with a convention determining how we label participants for each type of reaction.
+
+LINEBREAK 
+
+For the above reaction is of type COMBINATION, so partNum for A is 0.
+
+LINEBREAK
+LINEBREAK
+
+	- i: Refers to where a variable sits in the vector which stores it. For example, we may have the substances in a cell stored in a vector that looks like this: [A,B,C,D]. We might have a reaction in the cell that looks like A+C <--> D. iPart for C is 2 while for this given reaction, partNum for C is 1.
+
+LINEBREAK
+
+	***Note iTissue refers to initial tissue, not the index***
+
+SETINDENT 0
+LINEBREAK
+LINEBREAK
+
+REACTION TYPES
+CROSSLINE
+SETINDENT 1
+
+	- COMBINATION: A + B <--> C
+
+LINEBREAK
+
+	part_num increases from left to right. Thus, for A it is 0, B it is 1, C it is 2.
+
+LINEBREAK
+LINEBREAK
+
+	- DEGREDATION: A --> NOTHING
+
+LINEBREAK
+
+	part_num is 0 for A.
+
+LINEBREAK
+LINEBREAK
+
+	- PROMOTION: a --> A
+
+LINEBREAK
+
+	dA/dt = k*[a]
+
+LINEBREAK
+
+	part_num is 0 for A. a does not have a part_num because it's concentration is not affected by this reaction.
+
+LINEBREAK
+LINEBREAK
+
+	- LATERAL PROMOTION: 
+
+LINEBREAK 
+
+	dA/dt = k * [B_n]^2 / ( K + [B_n]^2 )
+
+LINEBREAK
+
+	Here [B_n] is the average concentration of B in neighboring
+	cells.
+
+LINEBREAK
+
+	part_num is 0 for A. B does not have a part_num because it's
+	concentration is not affected by this reaction.
+
+LINEBREAK
+LINEBREAK
+
+	- PROMOTER BINDING: a + B <--> a:B
+
+LINEBREAK
+
+	da:B/dt = fk * [a][B] - bk * [a:B]
+
+LINEBREAK
+
+	da/dt = bk * [a:B] - fk [a][B]
+
+LINEBREAK
+
+	part_num is 0 for a. part_num is 1 for a:B. B does not have a part_num because its concentration is not affected by this reaction.
+
+LINEBREAK
+
+	Note, while technically the concentration of B is affected by attaching to a, because there are far fewer a molecules than B molecules, it is affectively unchanged by this binding.
+
+LINEBREAK
+LINEBREAK
+
+	- HILL PROMOTION: 
+
+LINEBREAK
+
+	dB/dt = k * [A]^n / ( K + [A]^n )
+
+LINEBREAK
+
+	part_num is 0 for B. A does not have a part_num because its concentration is unaffected by this reaction.
+
+LINEBREAK
+LINEBREAK
+
+	- HILL REPRESSION
+
+LINEBREAK
+
+	dB/dt = k * K / ( K + [A]^n )
+
+LINEBREAK
+
+	part_num is 0 for B. A does not have a part_num because its concentration is unaffected by this reaction.

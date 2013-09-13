@@ -34,7 +34,7 @@ private:
 public:
 	
 	/* Evolution Parameters */
-	int _num_threads, _na, _ng, _mutations_per_gen;
+	int _na, _ng, _mutations_per_gen;
 	double _mutation_probability;
 	std::vector<MutationType> _mutation_types;
 

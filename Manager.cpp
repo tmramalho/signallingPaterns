@@ -10,8 +10,11 @@
 
 /* Constructor: Manager(method) 
  * --------------------------------------------------------------------------
- * Constructor that allows different construction methods, indicated by the 
- * string method.
+ * Constructor that allows different construction methods, indicated by 
+ * ConstructionMethod variable m. ConstructionMethod is enumerated in the 
+ * file ConstructionMethod.h.
+ *
+ * See individual functions for documentation.
  */
 Manager::Manager( ConstructionMethod m ) {
 	
@@ -34,9 +37,6 @@ Manager::Manager( ConstructionMethod m ) {
 		else if (m == TWO_PROTEIN) {
 			two_protein_construct();
 		}
-		else if (m == BEST_GENOME) {
-			best_genome_construct();
-		}
 		else { throw -1; }
 	}
 	catch ( int i ) {
@@ -56,14 +56,44 @@ Manager::Manager( ConstructionMethod m ) {
 
 Manager::Manager( Manager *newOne ) {
 	
+	/* Pointer to SettingsCont */
 	_sc_ref = newOne->_sc_ref;
-	_time = newOne->_time;
+	
+	/* Gene and protein info */
+	for ( int i_gene = 0 ; i_gene < newOne->_genes.size() ; i_gene++ ) {
+		Gene *gene_ref = newOne->_genes.at(i_gene);
+		_genes.push_back(new Gene(*gene_ref));
+	}
+	for ( int i_prot = 0 ; i_prot < newOne->_proteins.size() ; i_prot++ ) {
+		Protein *prot_ref = newOne->_proteins.at(i_prot);
+		_proteins.push_back( new Protein (*prot_ref) );
+	}
+	
+	/* Reaction info */
+	for ( int i_reac = 0 ; i_reac < newOne->_reactions.size() ; i_reac++ ) {
+		_reactions.push_back( newOne->_reactions.at(i_reac)->copy() );
+	}
+	
+	/* Current Time */
+	/* Time is not copied. It is also a state variable, so its intiatializing 
+	 * is handled by intialize(), called by the user.
+	 */
+	
+	/* Number of molecules */
 	_num_mol = newOne->_num_mol;
+	
+	/* Number of cells */
 	_num_cell = newOne->_num_cell;
 	
-	_curr_tissue.resize(_num_cell, _num_mol);
-	_i_tissue.resize(_num_cell,_num_mol);
 	
+	/* State matrix */
+	/* Only the size of this is set as it is its only characteristic that
+	 * does not depend on where we are in the integration. The values it
+	 * hold is handled by initialize().
+	 */
+	_curr_tissue.resize(_num_cell, _num_mol);
+	
+	/* Lineage Info */
 	for ( int i = 0 ; i < newOne->_evaluation_generations.size() ; i++ ) {
 		_evaluation_generations.push_back(newOne->_evaluation_generations.at(i));
 	}
@@ -73,29 +103,19 @@ Manager::Manager( Manager *newOne ) {
 	for ( int i = 0 ; i < newOne->_mutation_generations.size() ; i++ ) {
 		_mutation_generations.push_back(newOne->_mutation_generations.at(i));
 	}
-	
-	/* We do not give Gene a public copy constructor. We instead copy 
-	 * manually
-	 */
-	
-	for ( int i_gene = 0 ; i_gene < newOne->_genes.size() ; i_gene++ ) {
-		Gene *gene_ref = newOne->_genes.at(i_gene);
-		_genes.push_back( new Gene ( gene_ref->get_i_self() , gene_ref->get_i_product() , 
-									gene_ref->get_i_bound_promoter() , gene_ref->get_i_root() , 
-									gene_ref->get_init_conc() ) );
-	}
-	
-	for ( int i_prot = 0 ; i_prot < newOne->_proteins.size() ; i_prot++ ) {
-		Protein *prot_ref = newOne->_proteins.at(i_prot);
-		_proteins.push_back( new Protein ( prot_ref->get_i_self() , prot_ref->get_i_root_zero() ,
-										  prot_ref->get_i_root_one() , prot_ref->get_init_conc() ) );
-	}
-	
-	for ( int i_reac = 0 ; i_reac < newOne->_reactions.size() ; i_reac++ ) {
-		_reactions.push_back( newOne->_reactions.at(i_reac)->copy() );
-	}
-	
 }
+
+/* Constructor: Manager(file)
+ * --------------------------------------------------------------------------
+ * Initialize a Manager with the genetic network specified in the file.
+ * It is assumed that file is open and at the beginning of a file that is in
+ * the standardized format, matching the format created by the 
+ * genome_to_file() method. This format should maintain consistancy.
+ *
+ * See Documentation.txt for details on the format of the files, and how to
+ * easily change some aspects of the format in a way that will maintain 
+ * consistancy between file input and output.
+ */
 
 Manager::Manager( std::ifstream& file ) {
 	
@@ -179,17 +199,8 @@ Manager::~Manager() {
  * Performs a random mutation on the genome, picked randomly at uniform from
  * the possibilities listed in the _mutation_types in SettingsCont.
  *
- * The types of mutations are:
- *		
- *		1. The degredation constant of a protein is modified.
- *		2. A kinetic constant for a non-degredation reaction is modified.
- *		3. A gene and its associated protein are added to the genome.
- *		4. A interaction between a protein and a gene is added, creating
- *		a gene-protein complex with a modified protein production rate.
- *		5. A post-transcriptional mutation is added (ie, dimerization, etc)
- *		6. A Hill promotion or repression reaction within a cell is added.
- *		
- * 
+ * See Documentation.txt or the individual methods for details on the
+ * mutation types.
  */
 void Manager::mutate( boost::random::mt19937& generator ) {
 	int num_mutation = _sc_ref->_mutation_types.size();
@@ -223,6 +234,13 @@ void Manager::mutate( boost::random::mt19937& generator ) {
 	
 }
 
+/* Constructor: mutate(generator,generation) 
+ * --------------------------------------------------------------------------
+ * Exact copy of mutate method which just takes a generator as the argument,
+ * but useful for lineage data tracking. Adds the mutation generation to the
+ * _mutations_generations vector keeping track of in which generations 
+ * mutations have occurred in the current lineage.
+ */
 void Manager::mutate( boost::random::mt19937& generator , int generation ) {
 	int num_mutation = _sc_ref->_mutation_types.size();
 	boost::random::uniform_int_distribution<> which_mutation(0,num_mutation-1);
@@ -258,7 +276,7 @@ void Manager::mutate( boost::random::mt19937& generator , int generation ) {
 /* Public Method: initialize()
  * -------------------------------------------------------------------------- 
  * Initialize by making the dmat the appropriate size according to _num_mol,
- * and then filling each dmat with the initial concentrations of the proteins 
+ * and then filling the dmat with the initial concentrations of the proteins 
  * and genes, and setting _time = 0.
  */
 void Manager::initialize() {
@@ -270,12 +288,10 @@ void Manager::initialize() {
 	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
 		for ( int i_gene = 0 ; i_gene < genes_size ; i_gene++ ) {
 			Gene* gene_ref = _genes.at(i_gene);
-			_i_tissue.at(i_cell,gene_ref->get_i_self()) = gene_ref->get_init_conc();
 			_curr_tissue.at(i_cell,gene_ref->get_i_self()) = gene_ref->get_init_conc();
 		}
 		for ( int i_protein = 0 ; i_protein < _proteins.size() ; i_protein++ ) {
 			Protein* protein_ref = _proteins.at(i_protein);
-			_i_tissue.at(i_cell,protein_ref->get_i_self()) = protein_ref->get_init_conc();
 			_curr_tissue.at(i_cell,protein_ref->get_i_self()) = protein_ref->get_init_conc();
 		}
 	}
@@ -283,8 +299,8 @@ void Manager::initialize() {
 
 /* Public Method: integrate(num_step,generator)
  * -------------------------------------------------------------------------- 
- * Runs the ODE by filling in the currTissue vector based on iTissue, 
- * reactions, and integration mode.
+ * Runs the ODE for num_step more time steps from the current time, according
+ * to curr_tissue, reactions, and integration mode.
  */
 void Manager::integrate( int num_step , boost::random::mt19937& generator ) {
 	
@@ -306,8 +322,9 @@ void Manager::integrate( int num_step , boost::random::mt19937& generator ) {
 
 /* Public Method: integrate(num_step,generator,file)
  * -------------------------------------------------------------------------- 
- * Runs the ODE by filling in the currTissue vector based on iTissue, 
- * reactions, and integration mode. Writes state to file at each time step.
+ * Runs the ODE for num_step more time steps from the current time, according
+ * to curr_tissue, reactions, and integration mode. Writes state to file at 
+ * each time step.
  */
 void Manager::integrate( int num_step , boost::random::mt19937& generator ,
 						ofstream& file ) {
@@ -330,10 +347,11 @@ void Manager::integrate( int num_step , boost::random::mt19937& generator ,
 
 /* Public Method: get_curr_state(curr_state)
  * -------------------------------------------------------------------------- 
- * We copy _curr_state into the curr_state parameter passed by reference 
- * instead of returning a dmat to avoid shallow copying due to copy elision 
- * or other unwanted procedures used by the compiler to return a dmat object
- * without using copy constructor or assignment operator.
+ * We copy _curr_state into the curr_state parameter passed by reference. 
+ * We pass by reference rather than return a dmat to avoid shallow copying 
+ * due to copy elision or other unwanted procedures used by the compiler to 
+ * return a dmat object without using copy constructor or assignment 
+ * operator.
  */
 void Manager::get_curr_state(dmat& curr_state) {
 	int num_row = _curr_tissue.get_num_row();
@@ -392,21 +410,16 @@ void Manager::print_state() {
 
 /* Public Method: print_genome()
  * -------------------------------------------------------------------------- 
- * Lists the current genes, proteins, and reactions in our genome.
- * 
- * Format:
+ * Outputs the genetic network information to a console. It is assumed that 
+ * file is open and at the beginning of a file. Output follows the 
+ * standardized format, matching the format expected by the Manager(file) 
+ * constructor (which constructs a Manager according to the genome in a 
+ * file). Any change in this format should be made consistently in both 
+ * places.
  *
- *		GENES:
- *		Gene <i>:
- *			<info>
- *
- *		PROTEINS:
- *		Protein <i>:
- *			<info>
- *
- *		REACTIONS:
- *		Reaction <i>:
- *			<info>
+ * See Documentation.txt for details on the format of the files, and how to
+ * easily change some aspects of the format in a way that will maintain 
+ * consistancy between file input and output.
  * 
  */
 void Manager::print_genome() {
@@ -434,11 +447,37 @@ void Manager::print_genome() {
 	std::cout << std::endl << std::endl;
 }
 
-/* Public Method: genome_to_file(file,line_start)
+/* Public Method: state_to_file(file)
  * -------------------------------------------------------------------------- 
  */
 
-void Manager::genome_to_file( ofstream& file , std::string line_start ) {
+void Manager::state_to_file( std::ofstream& file ) {
+	
+	file << _time << " ";
+	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
+		for ( int i_mol = 0 ; i_mol < _num_mol ; i_mol++ ) {
+			file << _curr_tissue.at(i_cell,i_mol) << " ";
+		}
+	}
+	file << "\n";
+	
+}
+
+/* Public Method: genome_to_file(file,line_start)
+ * --------------------------------------------------------------------------
+ * Outputs the genetic network information to a console. It is assumed that 
+ * file is open and at the beginning of a file. Output follows the 
+ * standardized format, matching the format expected by the Manager(file) 
+ * constructor (which constructs a Manager according to the genome in a 
+ * file). Any change in this format should be made consistently in both 
+ * places.
+ *
+ * See Documentation.txt for details on the format of the files, and how to
+ * easily change some aspects of the format in a way that will maintain 
+ * consistancy between file input and output.
+ */
+
+void Manager::genome_to_file( ofstream& file , std::string line_start ) const {
 
 	file << "GENES:\n";
 	for ( int i_gene = 0 ; i_gene < _genes.size() ; i_gene++ ) {
@@ -460,31 +499,6 @@ void Manager::genome_to_file( ofstream& file , std::string line_start ) {
 		_reactions.at(i_reac)->to_file(file,line_start);
 	}
 	
-}
-
-/* Public Method: state_to_file(file)
- * -------------------------------------------------------------------------- 
- */
-
-void Manager::state_to_file( std::ofstream& file ) {
-	
-	file << _time << " ";
-	for ( int i_cell = 0 ; i_cell < _num_cell ; i_cell++ ) {
-		for ( int i_mol = 0 ; i_mol < _num_mol ; i_mol++ ) {
-			file << _curr_tissue.at(i_cell,i_mol) << " ";
-		}
-	}
-	file << "\n";
-	
-}
-
-bool Manager::has_comb_reac() {
-	for ( int i_reac = 0 ; i_reac < _reactions.size() ; i_reac++ ) {
-		if (_reactions.at(i_reac)->get_type() == COMBINATION) {
-			return true;
-		}
-	}
-	return false;
 }
 
 SettingsCont *Manager::get_sc_ref() {
@@ -576,38 +590,18 @@ void Manager::react( dmat& xi , dmat& dx_dt ,
  */
 void Manager::resize_dmats() {
 	
-	_i_tissue.resize( _num_cell , _num_mol );
 	_curr_tissue.resize( _num_cell , _num_mol );
 	
 }
 
-/* Private Method: update_indices(first_index,num_insertion)
+/* Private Method: update_mol_indices(first_index,num_insertion)
  * -------------------------------------------------------------------------- 
- * Goes through every gene, protein, and reaction and instructs them to 
- * update their internally stored data regarding their own index in the
- * dvecs and well as the index of other compounds they store (like their
- * products, roots, promoters, etc.)
+ * Goes through every gene, protein, and reaction, and instructs them to 
+ * update their internally stored data regarding their own index (for genes
+ * and proteins) as well as the index of other molecules they are related to 
+ * (eg. proteins in a complex, or for reactions, the reactants and products).
  *
- * first_index is the index of the first member of the insertions. A negative
- * num_insertion refers to deletions.
- *
- * CAUTION: we assume first_index is within the range of our current number
- * of molecules, and num_insertions, when negative, does not delete more
- * substances than there are to delete. Could create run-time errors
- * otherwise.
- *
- * EXAMPLES: 
- *
- *		update_indices(3,2) produces
- *
- *		  < 1 , 10 , 3 , 7 , 4 , 11 > --> < 1 , 10 , 3 ,___,___, 7 , 4 , 11 >
- *
- *		update_indices(3,-2) produces
- *
- *		   < 1 , 10 , 3 , 7 , 4 , 11 > --> < 1 , 10 , 3 , 11 >
- *
- *		On the vector above, update_indices(3,-4) would produce run-time 
- *		errors.
+ * The actual update method is performed by the gene and proteins themselves.
  */
 void Manager::update_mol_indices( int first_index , int num_insertion ) {
 	for ( int i = 0 ; i < _genes.size() ; i++ ) {
@@ -645,6 +639,9 @@ void Manager::update_mol_indices( int first_index , int num_insertion ) {
  *		7. The degredation reaction is added to the reaction vector of the
  *		protein.
  *		8. Updates _num_mol.
+ *
+ * NB Because reactions only added at the end, no indices of existing
+ * reactions require updating.
  */
 void Manager::add_gene( double prod_rate , double deg_rate ) {
 	
@@ -706,7 +703,10 @@ void Manager::add_gene( double prod_rate , double deg_rate ) {
  *		binding protein, and gene-protein complex.
  *		6. The PromReaction is added to the interal data of the gene-protein
  *		complex and the promoted gene.
- *		7. Updates numMol.
+ *		7. Updates _num_mol.
+ *
+ * NB Because reactions only added at the end, no indices of existing
+ * reactions require updating.
  */
 void Manager::add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
 								  double forward_kinetic , double backward_kinetic , 
@@ -770,7 +770,10 @@ void Manager::add_PromBindingReac( int i_gene_in_genes , int i_prot_in_prots ,
  *		the proteins. (CombReaction)
  *		4. The CombReaction is added to the internal list of reactions of the 
  *		individual proteins and the new prot:prot complex.
- *		5. Updates numMol.
+ *		5. Updates _num_mol.
+ *
+ * NB Because reactions only added at the end, no indices of existing
+ * reactions require updating.
  */
 
 void Manager::add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_prots , 
@@ -820,6 +823,9 @@ void Manager::add_CombReaction( int i_prot_zero_in_prots , int i_prot_one_in_pro
  *		1. A new reaction is added describing the lateral promotion reaction.
  *		2. This reaction is added to the internal data of the participating
  *		proteins.
+ *
+ * NB Because no genes or proteins are added, and reactions only added at the 
+ * end, no indices of existing reactions require updating.
  */
 
 void Manager::add_LatPromReac( int i_promoting_neighbors_in_prots , 
@@ -858,6 +864,9 @@ void Manager::add_LatPromReac( int i_promoting_neighbors_in_prots ,
  *		1. A new reaction is added describing the lateral promotion reaction.
  *		2. This reaction is added to the internal data of the participating
  *		proteins.
+ *
+ * NB Because no genes or proteins are added, and reactions only added at the 
+ * end, no indices of existing reactions require updating.
  */
 
 void Manager::add_LatRepReac( int i_repressing_neighbors_in_prots , 
@@ -895,6 +904,9 @@ void Manager::add_LatRepReac( int i_repressing_neighbors_in_prots ,
  *		1. A new reaction is added describing the hill promotion reaction.
  *		2. This reaction is added to the internal data of the participating
  *		proteins.
+ *
+ * NB Because no genes or proteins are added, and reactions only added at the 
+ * end, no indices of existing reactions require updating.
  */
 
 void Manager::add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prots ,
@@ -932,6 +944,9 @@ void Manager::add_HillPromReac( int i_promoter_in_prots , int i_promoted_in_prot
  *		1. A new reaction is added describing the hill repression reaction.
  *		2. This reaction is added to the internal data of the participating
  *		proteins.
+ *
+ * NB Because no genes or proteins are added, and reactions only added at the 
+ * end, no indices of existing reactions require updating.
  */
 
 void Manager::add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_prots ,
@@ -950,6 +965,15 @@ void Manager::add_HillRepReac( int i_repressor_in_prots , int i_repressed_in_pro
 		_proteins.at(i_repressed_in_prots)->add_reaction(_reactions.size()-1); // to promoted protein
 	}
 }
+
+/* Private Method: remove_gene( int i_gene )
+ * -------------------------------------------------------------------------- 
+ * Removes the gene indexed by i_gene, as well as all things dependent on it.
+ *
+ * Finding dependencies is handled by gene_removal_cascade. See 
+ * Documentation.txt for more info on reaction removal and the gene removal
+ * cascade.
+ */
 
 void Manager::remove_gene( int i_gene ) {
 	std::set<int> reacs_to_delete;
@@ -980,6 +1004,42 @@ void Manager::remove_reaction( int i_reac ) {
 	
 	perform_removal_using_sets(reacs_to_delete,genes_to_delete,prots_to_delete);
 }
+
+/* Private Method: reac_removal_cascade(i_reac_to_remove,reacs_to_delete,
+ *										genes_to_delete,prots_to_delete)
+ * --------------------------------------------------------------------------
+ * Adds to the reacs_to_delete, genes_to_delete, and prots_to_delete sets the
+ * indices of all genes, proteins, and reactions that need to be deleted due
+ * to the removal of reaction indexed by i_reac_to_remove.
+ *
+ * Performs via recursion, using the gene_removal_cascade and
+ * prot_removal_cascade methods.
+ *
+ * We assume i_reac_to_remove has already been added to the reacs_to_delete
+ * method when the function is called. Thus, the function only deals with
+ * dependencies.
+ *
+ * First checks if any molecules must be added due to dependencies on this
+ * reaction.
+ *
+ * If so, it, based on whether the molecules is a gene or a protein, performs
+ * the following method:
+ *
+ *		1. Check whether this molecule has already been added as a molecule
+ *		to delete. Check by seeing if adding the molecule to the 
+ *		corresponding set (gene or protein) changes the size of the set.
+ *		2. If it has not yet been added (the set size did change at its
+ *		addition), we call the appropriate cascade for that molecule.
+ *
+ * Note that because the next molecule is added to the corresponding set
+ * before we call its cascade, we maintain the convention that the cascade
+ * is only called once the substance it is cascading off of has been added
+ * to the corresponding to_delete set. This assures that the recursion will
+ * eventually return.
+ *
+ * See Documetnation.txt for the details of the dependencies that govern
+ * the cascade.
+ */
 
 void Manager::reac_removal_cascade( int i_reac_to_remove , 
 								   std::set<int>& reacs_to_delete ,
@@ -1016,6 +1076,24 @@ void Manager::reac_removal_cascade( int i_reac_to_remove ,
 	
 }
 
+/* Private Method: gene_removal_cascade(i_gene_to_remove,reacs_to_delete,
+ *										genes_to_delete,prots_to_delete)
+ * --------------------------------------------------------------------------
+ * Adds to the reacs_to_delete, genes_to_delete, and prots_to_delete sets the
+ * indices of all genes, proteins, and reactions that need to be deleted due
+ * to the removal of gene indexed by i_gene_to_remove.
+ *
+ * Performs via recursion, using the reac_removal_cascade and
+ * prot_removal_cascade methods.
+ *
+ * We assume i_gene_to_remove has already been added to the genes_to_delete
+ * method when the function is called. Thus, the function only deals with
+ * dependencies.
+ *
+ * See Documetnation.txt for the details of the dependencies that govern
+ * the cascade.
+ */
+
 void Manager::gene_removal_cascade( int i_gene_to_delete ,
 								  std::set<int>& reacs_to_delete ,
 								  std::set<int>& genes_to_delete ,
@@ -1050,6 +1128,26 @@ void Manager::gene_removal_cascade( int i_gene_to_delete ,
 	
 }
 
+/* Private Method: prot_removal_cascade(i_prot_to_remove,reacs_to_delete,
+ *										genes_to_delete,prots_to_delete)
+ * --------------------------------------------------------------------------
+ * Adds to the reacs_to_delete, genes_to_delete, and prots_to_delete sets the
+ * indices of all genes, proteins, and reactions that need to be deleted due
+ * to the removal of the protein indexed by i_prot_to_remove.
+ *
+ * i_prot_to_remove is the index of the protein in the proteins vector, and
+ * not in the entire dvec of the tissue.
+ *
+ * Performs via recursion, using the reac_removal_cascade and
+ * gene_removal_cascade methods.
+ *
+ * We assume i_prot_to_remove has already been added to the prots_to_delete
+ * method when the function is called. Thus, the function only deals with
+ * dependencies.
+ *
+ * See Documetnation.txt for the details of the dependencies that govern
+ * the cascade.
+ */
 void Manager::prot_removal_cascade( int i_prot_to_delete ,
 								   std::set<int>& reacs_to_delete ,
 								   std::set<int>& genes_to_delete ,
@@ -1075,6 +1173,26 @@ void Manager::prot_removal_cascade( int i_prot_to_delete ,
 	
 }
 
+/* Private Method: perform_removal_using_sets(i_prot_to_remove,reacs_to_delete,
+ *											genes_to_delete,prots_to_delete)
+ * --------------------------------------------------------------------------
+ * Removes the reactions, genes, and proteins from the genome using the sets
+ * passed to it. 
+ *
+ * This method does nothing regarding dependencies. It is assumed that reacs,
+ * genes, and prots to delete have already been found according to a removal
+ * cascade so that all dependencies are already taken care of. 
+ *
+ * It removes reactions or molecules one at a time, and in between updates
+ * all necessary indices, including those in teh reacs_to_delete,
+ * genes_to_delete, and prots_to_delete sets. 
+ *
+ * Updates are made using the update index method or function class from
+ * the Operations namespace. This, referenced from all part of the code,
+ * makes it easy to edit the update index method as necessary and maintain
+ * consistancy throughout the code. Useful for correcting errors or adding
+ * more complicated update procedures.
+ */
 void Manager::perform_removal_using_sets(std::set<int>& reacs_to_delete,
 										  std::set<int>& genes_to_delete,
 										  std::set<int>& prots_to_delete) {
@@ -1344,7 +1462,11 @@ void Manager::removal_mutation( boost::random::mt19937& generator ) {
 }
 
 /* Private Method: rk4_det_ti(num_step)
- * -------------------------------------------------------------------------- 
+ * --------------------------------------------------------------------------
+ * At each step, performs the 4th order deterministic runge kutta update. 
+ * Calls the Manager::react method which given the curr_tissue reads into
+ * the dx_dt dmat passed by reference the appropriate rates of change of 
+ * reactants at this time step.
  */
 
 void Manager::rk4_det_ti( int num_step ) {
@@ -1394,7 +1516,13 @@ void Manager::rk4_det_ti( int num_step ) {
 }
 
 /* Private Method: rk4_det_ti(num_step,file)
- * -------------------------------------------------------------------------- 
+ * --------------------------------------------------------------------------
+ * Equivalent to the ordinary 4th order deterministic method, but reads into
+ * the provided file the concentrations of each substance in each cell at
+ * each point in time.
+ *
+ * file is considered to be open and pointing to the beginning of the
+ * desired output file. The file is NOT closed before returning.
  */
 
 void Manager::rk4_det_ti( int num_step , ofstream& file) {
@@ -1446,7 +1574,18 @@ void Manager::rk4_det_ti( int num_step , ofstream& file) {
 }
 
 /* Private Method: rk4_stc_ti(num_step,generator)
- * -------------------------------------------------------------------------- 
+ * ---------------------------------------------------------------------------
+ * At each step, performs the 4th order stochastic runge kutta update designed
+ * by Jeremy Kasdin at Princeton University. 
+ *
+ * See http://people.sc.fsu.edu/~jburkardt/m_src/stochastic_rk/stochastic_rk.html
+ *
+ * At each step it reads it calls the stochastic Manager::react method, which 
+ * reads into the dx_dt dmat passed by reference the appropriate rates of
+ * chante at that time step given the curr_state dmat. 
+ *
+ * For a clear specification of what the dx_dt dmat represents in the
+ * stochastic case, see Documentation.txt.
  */
 
 void Manager::rk4_stc_ti( int num_step , boost::random::mt19937& generator ) {
@@ -1529,6 +1668,13 @@ void Manager::rk4_stc_ti( int num_step , boost::random::mt19937& generator ) {
 
 /* Private Method: rk4_stc_ti(num_step,generator,file)
  * -------------------------------------------------------------------------- 
+ * Same as orindary 4th order stochastic runge kutta method, but reads into
+ * the provided file the concentrations of each substance in each cell at
+ * each point in time.
+ *
+ * file is considered to be open and pointing to the beginning of the
+ * desired output file. The file is NOT closed before returning.
+ * step reads into t
  */
 
 void Manager::rk4_stc_ti( int num_step , boost::random::mt19937& generator , std::ofstream& file) {
@@ -1608,6 +1754,14 @@ void Manager::rk4_stc_ti( int num_step , boost::random::mt19937& generator , std
 	}
 }
 
+/* Private Method: hakim_delta_notch_construct()
+ * --------------------------------------------------------------------------
+ * HAKIM_DELTA_NOTCH constructor helper. 
+ * The constructed network attempts to make a Hakim Delta Notch network, 
+ * though given further tests, the appropriate altnerating pattern only was
+ * found for initial concentrations that already had the desired alternating.
+ */
+
 void Manager::hakim_delta_notch_construct() {
 	_num_mol = 0; /* Before we add anything to the genome. Otherwise has random
 				   * initiation.
@@ -1644,6 +1798,13 @@ void Manager::hakim_delta_notch_construct() {
 	}
 }
 
+/* Private Method: collier_delta_notch_construct()
+ * --------------------------------------------------------------------------
+ * COLLER_DELTA_NOTCH constructor helper. 
+ * Creates the exact genetic network studies in Collier et al.'s paper.
+ * (ie. "Pattern Formation by Lateral Inhibition with Feedback: a 
+ * Mathematical Model of Delta-Notch Intercellular Signalling.")
+ */
 void Manager::collier_delta_notch_construct() {
 	_num_mol = 0;
 	
@@ -1674,6 +1835,11 @@ void Manager::collier_delta_notch_construct() {
 	
 }
 
+/* Private Method: mutate_construct()
+ * --------------------------------------------------------------------------
+ * MUTATION constructor helper. 
+ * Creates genome by beginning with a gene, and then performing 5 mutations. 
+ */
 void Manager::mutation_construct() {
 	_num_mol = 0; /* Before we add anything to the genome. Otherwise has random
 				   * initiation.
@@ -1694,6 +1860,11 @@ void Manager::mutation_construct() {
 	initialize();
 }
 
+/* Private Method: one_protein_construct()
+ * --------------------------------------------------------------------------
+ * ONE_PROTEIN constructor helper. 
+ * Creates genome consisting of just a gene and a protein.
+ */
 void Manager::one_protein_construct() {
 	_num_mol = 0;
 	
@@ -1702,32 +1873,16 @@ void Manager::one_protein_construct() {
 	initialize();
 }
 
+/* Private Method: two_protein_construct()
+ * --------------------------------------------------------------------------
+ * TWO_PROTEIN constructor helper. 
+ * Creates genome consisting of two gene and their related proteins.
+ *
+ * promotion rate = 0. Degredation rate = 1.
+ */
 void Manager::two_protein_construct() {
 	_num_mol = 0;
 	add_gene(0.0,1.0);
 	add_gene(0.0,1.0);
 	initialize();
 }
-
-void Manager::best_genome_construct() {
-	_num_mol = 0;
-	add_gene(0.0,1.0);
-	add_gene(0.0,1.0);
-	/*
-	add_HillRepReac(0,1,1.34998, 1.44069, 5);
-	add_LatPromReac(1, 0, 1.2979, .958763);
-	add_HillPromReac(0, 0, .645871, .949438, 5);
-	 
-	
-	add_HillRepReac(1, 0, 1.92373, .384852, 5);
-	add_LatPromReac(0, 1, 2.70129, .737987);
-	
-	*/
-	
-	add_HillRepReac(0,1, 1.19796, 1.3432, 5);
-	add_LatPromReac(0, 1, 1.7474, .939854);
-	add_LatPromReac(1, 0, 1.58386, 1.26992);
-	
-	initialize();
-}
-

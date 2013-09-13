@@ -12,7 +12,6 @@ SettingsCont *SettingsCont::_sc_ref = NULL;
 SettingsCont::SettingsCont() {
 	
 	/* Evolution Parameters */
-	_num_threads = 2;
 	_na = 15;
 	_ng = 250;
 	_mutations_per_gen = 2;
@@ -114,6 +113,12 @@ SettingsCont *SettingsCont::getInstance() {
 	return _sc_ref;
 }
 
+/* Public Method: set_neighbors(neighbor_code) 
+ * --------------------------------------------------------------------------
+ * This initializes the neighbors vector according to the following code:
+ *
+ * 
+ */
 void SettingsCont::set_neighbors ( std::string neighbors_code ) {
 	
 	_neighbors.erase(_neighbors.begin(),_neighbors.end());

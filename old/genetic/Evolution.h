@@ -36,9 +36,7 @@ public:
 
 	void colonize( ConstructionMethod m );
 
-	Manager *train( EvAlgorithm alg , int run_num);
-	
-	void genomes_to_file(int alg_num,int run_num,int gen_num);
+	Manager *train( EvAlgorithm alg);
 	
 	/* Data Tracking */
 	static Organism* new_organism();
@@ -67,9 +65,9 @@ private:
 	
 	/* PRIVATE METHODS */
 	/* Evolutionary Algorithms */
-	Manager *alg_1(int run_num);
-	Manager *alg_2(int run_num);
-	Manager *alg_3(int run_num);
+	Manager *alg_1();
+	Manager *alg_2();
+	Manager *alg_3();
 	
 	/* Data Tracking Helpers */
 	void phylogeny_to_file( std::ofstream& file , Organism* org_ref , int gen );

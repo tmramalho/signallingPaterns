@@ -87,11 +87,10 @@ public:
 	void print_genome();
 	
 	/* File Writing */
-	void genome_to_file( std::ofstream& file , std::string line_start );
-	void state_to_file( std::ofstream& file );
+	void genome_to_file( std::ofstream& file , std::string line_start ) const ;
+	void state_to_file( std::ofstream& file ) ;
 	
 	/* Debugging */
-	bool has_comb_reac();
 	SettingsCont *get_sc_ref();
 	
 	/* Lineage Data Tracking */
@@ -111,9 +110,6 @@ private:
 	/* Pointer to SettingsCont */
 	SettingsCont *_sc_ref;
 	
-	/* State vectors */
-	dmat _i_tissue, _curr_tissue;
-	
 	/* Gene and protein info */
 	std::vector<Gene*> _genes;
 	std::vector<Protein*> _proteins;
@@ -129,6 +125,9 @@ private:
 	
 	/* Number of cells */
 	int _num_cell;
+	
+	/* State matrix */
+	dmat _curr_tissue;
 	
 	/* Lineage Info */
 	std::vector<int> _evaluation_generations;
@@ -150,7 +149,6 @@ private:
 	/* Helpers for mutating genome */
 	void resize_dmats();
 	void update_mol_indices( int first_index , int num_insertion );
-	void update_reac_indices( int first_index , int num_deletion );
 	
 	/* Helpers for adding and removing reactions */
 	void add_gene( double prod_rate , double deg_rate );

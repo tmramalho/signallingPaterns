@@ -4,6 +4,8 @@
  * Michael Celentano
  */
  
+#include "cs106/scanner.h"
+
 #include <iostream>
 #include <fstream>
 #include <istream>
@@ -74,13 +76,18 @@ void reaction_deletion_debugging();
 void collier_delta_notch_run();
 void test_genome_in_file();
 
-int main () {
+void create_documentation( ifstream& input );
 
-	test_genome_in_file();
+int main () {
+	
+	ifstream input;
+	input.open("DocumentationCode.txt");
+	create_documentation(input);
 	
 	return 0;
 }
 
+/*
 void collect_algorithm_data() {
 	DNScore ff;
 	std::string filename;
@@ -150,7 +157,7 @@ void collect_algorithm_data() {
 		}
 	}	
 }
-
+*/
 void reaction_deletion_debugging() {
 	ManagerDebugger md;
 	md.reaction_removal_debugging();
@@ -188,3 +195,95 @@ void test_genome_in_file() {
 	
 }
 
+void create_documentation( ifstream& input ) {
+	
+	int num_indents = 0;
+	int counter = 0;
+	int _line_size = 75;
+	
+	ofstream output;
+	output.open("Documentation.txt");
+	
+	Scanner scan;
+	scan.setInput(input);
+	scan.setSpaceOption(Scanner::PreserveSpaces);
+	scan.setNumberOption(Scanner::ScanNumbersAsIntegers);
+	scan.setStringOption(Scanner::ScanQuotesAsPunctuation);
+	scan.setBracketOption(Scanner::ScanBracketsAsPunctuation);
+	
+	string next_token;
+	
+	while (scan.hasMoreTokens()) {
+		next_token = scan.nextToken();
+		if (next_token == "LINEBREAK") {
+			output << "\n";
+			for (int i = 0; i < num_indents; i++) {
+				output << "\t";
+			}
+			counter = 7 * num_indents;
+		}
+		else if ( next_token == "NEWPARAGRAPH" ) {
+			output << "\n" << "\n";
+			for (int i = 0; i < num_indents; i++) {
+				output << "\t";
+			}
+			counter = 7 * num_indents;
+		}
+		else if (next_token == "SETINDENT") {
+			scan.nextToken();
+			num_indents = atoi(scan.nextToken().c_str());
+		}
+		else if (next_token == "INCREMENTINDENT") {
+			scan.nextToken();
+			string next = scan.nextToken();
+			if ( next == "-" ) {
+				num_indents -= atoi(scan.nextToken().c_str());
+			}
+			else {
+				num_indents += atoi(next.c_str());
+			}
+
+		}
+		else if ( next_token == "CROSSLINE") {
+			output << "\n";
+			for (int i = 0; i < _line_size; i++) {
+				output << '-';
+			}
+			output << "\n";
+			for (int i = 0; i < num_indents; i++) {
+				output << "\t";
+			}
+			counter = 7 * num_indents;
+		}
+		else if (next_token == "\n" || next_token == "\t");
+		else {
+			counter += next_token.size();
+			string next = scan.nextToken();
+			if ( next_token != " " && next != " " && next != "\t" && next != "\n") {
+				while (next != " " && next != "\t" && next != "\n") {
+					next_token += next;
+					counter += next.size();
+					next = scan.nextToken();
+				}
+			}
+			scan.saveToken(next);
+			if ( counter >= _line_size ) {
+				output << "\n";
+				for (int i = 0; i < num_indents ; i++) {
+					output << "\t";
+				}
+				counter = 7 * num_indents;
+				if ( next_token != " " ) {
+					output << next_token;
+					counter += next_token.size();
+				}
+			}
+			else {
+				output << next_token;
+			}
+		}
+	}
+	
+	output.close();
+	
+}
