@@ -391,7 +391,18 @@ generation, mutating some of the copies, and then having the 2*pop_size
 managers (parents and offspring) compete to get into the next generation.
 We wish to create an evolutionary tree, depicted below
 
-[Insert Graphic: PhylogenyGraphic.txt]
+          *                      *                     *
+         / \			/ \                   / \			
+        *   *                  *   *                 *   *
+       / \                        / \               / \
+      /   \                      /   \	           /   \
+     *     *                    *     *           *     *
+    	                       / \   / \         / \
+                              /   \ /   \       /   \
+                             *    **     *     *     *
+                            /\          / \         / \
+                           /  \        /   \       /   \
+                          *    *      *     *     *     *
 
 Graphic of 5 generations in a phylogeny with population size of 3. Note 3 
 out of 6 organisms (and thus managers) are selected each generation. The 
