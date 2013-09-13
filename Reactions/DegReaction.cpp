@@ -61,6 +61,7 @@ Reaction* DegReaction::copy() {
  *
  * Returns NEXIST for part_num != 0.
  */
+
 int DegReaction::get_i_part( int part_num ) const {
 	switch (part_num) {
 		case 0:

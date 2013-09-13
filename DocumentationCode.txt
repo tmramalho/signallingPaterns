@@ -624,6 +624,26 @@ LINEBREAK
 LINEBREAK
 LINEBREAK
 
+	- LATERAL REPRESSION: 
+
+LINEBREAK 
+
+	dA/dt = k * K / ( K + [B_n]^2 )
+
+LINEBREAK
+
+	Here [B_n] is the average concentration of B in neighboring
+	cells.
+
+LINEBREAK
+
+	part_num is 0 for A. B does not have a part_num because it's
+	concentration is not affected by this reaction.
+
+LINEBREAK
+LINEBREAK
+
+
 	- PROMOTER BINDING: a + B <--> a:B
 
 LINEBREAK

@@ -391,18 +391,7 @@ generation, mutating some of the copies, and then having the 2*pop_size
 managers (parents and offspring) compete to get into the next generation.
 We wish to create an evolutionary tree, depicted below
 
-          *                      *                     *
-         / \			/ \                   / \			
-        *   *                  *   *                 *   *
-       / \                        / \               / \
-      /   \                      /   \	           /   \
-     *     *                    *     *           *     *
-    	                       / \   / \         / \
-                              /   \ /   \       /   \
-                             *    **     *     *     *
-                            /\          / \         / \
-                           /  \        /   \       /   \
-                          *    *      *     *     *     *
+[Insert Graphic: PhylogenyGraphic.txt]
 
 Graphic of 5 generations in a phylogeny with population size of 3. Note 3 
 out of 6 organisms (and thus managers) are selected each generation. The 
@@ -531,6 +520,12 @@ REACTION TYPES
 	
 	- LATERAL PROMOTION: 
 	 dA/dt = k * [B_n]^2 / ( K + [B_n]^2 )
+	Here [B_n] is the average concentration of B in neighboringcells.
+	part_num is 0 for A. B does not have a part_num because it's
+	concentration is not affected by this reaction.
+	
+	- LATERAL REPRESSION: 
+	 dA/dt = k * K / ( K + [B_n]^2 )
 	Here [B_n] is the average concentration of B in neighboringcells.
 	part_num is 0 for A. B does not have a part_num because it's
 	concentration is not affected by this reaction.
